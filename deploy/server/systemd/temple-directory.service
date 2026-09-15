@@ -1,0 +1,45 @@
+[Unit]
+Description=Temple Directory web application
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=temple
+Group=temple
+WorkingDirectory=/opt/temple-directory/current
+EnvironmentFile=/etc/temple-directory/temple.env
+# Present only until the first start has created the accounts; setup.sh deletes it afterwards.
+EnvironmentFile=-/etc/temple-directory/first-run.env
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node --disable-warning=ExperimentalWarning server.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+UMask=0077
+
+# Sandboxing: the app can only write to its data directory.
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=true
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+AmbientCapabilities=
+ReadWritePaths=/var/lib/temple-directory
+MemoryMax=768M
+
+[Install]
+WantedBy=multi-user.target

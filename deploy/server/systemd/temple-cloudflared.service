@@ -1,0 +1,20 @@
+[Unit]
+Description=Cloudflare Tunnel for Temple Directory
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+DynamicUser=true
+# TUNNEL_TOKEN lives in this root-only file so it never appears in process arguments.
+EnvironmentFile=/etc/cloudflared/temple-tunnel.env
+ExecStart=/usr/bin/cloudflared --no-autoupdate tunnel run
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

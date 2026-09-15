@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 560">
+  <defs>
+    <symbol id="niche" viewBox="0 0 12 24"><path d="M0 24V6a6 6 0 0 1 12 0v18z"/></symbol>
+    <symbol id="kalasam" viewBox="0 0 12 26">
+      <path d="M6 0l1.6 8H4.4z"/>
+      <circle cx="6" cy="12" r="4.4"/>
+      <path d="M2 17h8l-1 3H3z"/>
+      <rect x="1" y="20" width="10" height="3" rx="1"/>
+    </symbol>
+  </defs>
+  <g fill="#7A1518">
+    <!-- plinth and base -->
+    <rect x="24" y="546" width="352" height="14"/>
+    <rect x="40" y="532" width="320" height="16"/>
+    <rect x="52" y="460" width="296" height="74"/>
+    <!-- tiers -->
+    <path d="M60 460 70 416h260l10 44z"/><rect x="64" y="408" width="272" height="9"/>
+    <path d="M76 408 86 364h228l10 44z"/><rect x="80" y="356" width="240" height="9"/>
+    <path d="M92 356 102 312h196l10 44z"/><rect x="96" y="304" width="208" height="9"/>
+    <path d="M108 304 118 260h164l10 44z"/><rect x="112" y="252" width="176" height="9"/>
+    <path d="M124 252 134 208h132l10 44z"/><rect x="128" y="200" width="144" height="9"/>
+    <path d="M140 200 150 156h100l10 44z"/><rect x="144" y="148" width="112" height="9"/>
+    <path d="M156 148 166 104h68l10 44z"/><rect x="152" y="96" width="96" height="9"/>
+    <!-- shala (barrel vault) crown -->
+    <path d="M150 97V80c0-6 22-26 50-26s50 20 50 26v17z"/>
+    <use href="#kalasam" x="158" y="46" width="12" height="26"/>
+    <use href="#kalasam" x="176" y="34" width="12" height="26"/>
+    <use href="#kalasam" x="194" y="28" width="12" height="26"/>
+    <use href="#kalasam" x="212" y="34" width="12" height="26"/>
+    <use href="#kalasam" x="230" y="46" width="12" height="26"/>
+  </g>
+  <g fill="#F8EEDB">
+    <!-- doorway -->
+    <path d="M178 534v-46a22 22 0 0 1 44 0v46z"/>
+    <!-- niches -->
+    <use href="#niche" x="194" y="424" width="12" height="24"/><use href="#niche" x="124" y="424" width="12" height="24"/><use href="#niche" x="264" y="424" width="12" height="24"/>
+    <use href="#niche" x="194" y="372" width="12" height="24"/><use href="#niche" x="132" y="372" width="12" height="24"/><use href="#niche" x="256" y="372" width="12" height="24"/>
+    <use href="#niche" x="194" y="320" width="12" height="24"/><use href="#niche" x="140" y="320" width="12" height="24"/><use href="#niche" x="248" y="320" width="12" height="24"/>
+    <use href="#niche" x="194" y="268" width="12" height="24"/><use href="#niche" x="148" y="268" width="12" height="24"/><use href="#niche" x="240" y="268" width="12" height="24"/>
+    <use href="#niche" x="194" y="216" width="12" height="24"/><use href="#niche" x="156" y="216" width="12" height="24"/><use href="#niche" x="232" y="216" width="12" height="24"/>
+    <use href="#niche" x="194" y="164" width="12" height="24"/><use href="#niche" x="164" y="164" width="12" height="24"/><use href="#niche" x="224" y="164" width="12" height="24"/>
+    <use href="#niche" x="194" y="114" width="12" height="24"/>
+    <!-- base pilasters -->
+    <rect x="80" y="474" width="8" height="54"/><rect x="118" y="474" width="8" height="54"/>
+    <rect x="274" y="474" width="8" height="54"/><rect x="312" y="474" width="8" height="54"/>
+    <circle cx="200" cy="80" r="9"/>
+  </g>
+</svg>

@@ -1,0 +1,12 @@
+[Unit]
+Description=Nightly Temple Directory database backup
+
+[Timer]
+# Server clock is set to Asia/Kolkata by setup.sh
+OnCalendar=*-*-* 02:30:00
+RandomizedDelaySec=10m
+Persistent=true
+Unit=temple-backup@nightly.service
+
+[Install]
+WantedBy=timers.target

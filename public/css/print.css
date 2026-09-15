@@ -1,0 +1,24 @@
+@page { size: A4; margin: 12mm; }
+
+body { background: #fff !important; color: #000; }
+
+.backdrop, .site-header, .thoranam, .crafted-badge, .toasts, .no-print, .crumbs,
+.toolbar, .filters, .active-filters, .selection-bar, .pagination, .page-head__actions, .row-actions,
+.devotee-form__actions, .repeater__remove, .repeater__add, .search--hero, .notice { display: none !important; }
+
+.page { padding: 0 !important; max-width: none; }
+.panel, .sankalpam, .record, .stat, .star-tile { box-shadow: none !important; background: #fff !important; }
+.data-table th { position: static; background: #f3ead8 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.data-table tbody tr:hover { background: none; }
+a { color: inherit; text-decoration: none; }
+
+/* Print only one card (pooja card or record) when requested */
+body.print-single .view > *:not(:has(.print-target)):not(.print-target) { display: none !important; }
+body.print-single .pooja__hero, body.print-single .pooja__list > p { display: none !important; }
+body.print-single .pooja__list > .sankalpam:not(.print-target) { display: none !important; }
+
+/* Mailing labels: two across, no page splitting */
+.mailing .page-head, .view > .page-head { display: none; }
+.labels { grid-template-columns: 1fr 1fr !important; gap: 6mm !important; padding: 0 !important; }
+.mail-label { border: 1px dashed #999 !important; box-shadow: none !important; page-break-inside: avoid; font-size: 11pt; }
+.mailing-table .check-cell { display: none; }

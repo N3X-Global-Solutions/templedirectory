@@ -1,0 +1,14 @@
+[Unit]
+Description=Point the DuckDNS subdomain at this server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+DynamicUser=true
+EnvironmentFile=/etc/temple-directory/duckdns.env
+ExecStart=/bin/bash /opt/temple-directory/current/deploy/server/duckdns-update.sh
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true

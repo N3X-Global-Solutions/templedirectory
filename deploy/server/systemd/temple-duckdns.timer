@@ -1,0 +1,10 @@
+[Unit]
+Description=Refresh the DuckDNS record every 15 minutes
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=15min
+Unit=temple-duckdns.service
+
+[Install]
+WantedBy=timers.target

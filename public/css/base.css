@@ -1,0 +1,271 @@
+/* ——— Design tokens: kumkum maroon, turmeric gold, sandalwood paper ——— */
+:root {
+  --kumkum-950: #2C0709;
+  --kumkum-900: #3F0A0D;
+  --kumkum-800: #5A0F12;
+  --kumkum-700: #7A1518;
+  --kumkum-600: #8E1B1B;
+  --kumkum-100: #F6DEDA;
+  --turmeric-600: #C98A12;
+  --turmeric-500: #E0A526;
+  --turmeric-300: #F1CF7A;
+  --turmeric-100: #FBF0D0;
+  --sandal-50: #FFFBF3;
+  --sandal-100: #F8EEDB;
+  --sandal-200: #EFDFBF;
+  --sandal-300: #E2C999;
+  --ink-900: #2A1810;
+  --ink-700: #4E3528;
+  --ink-500: #7A6052;
+  --leaf-600: #2F6B3A;
+  --leaf-100: #E1EFDC;
+  --marigold-500: #EE8A1C;
+  --danger-600: #B3261E;
+  --danger-100: #FBE3E0;
+
+  --line: rgba(90, 15, 18, 0.14);
+  --line-strong: rgba(90, 15, 18, 0.3);
+
+  --font-display: 'Tiro Tamil', 'Nirmala UI', 'Latha', Georgia, serif;
+  --font-body: 'Hind Madurai', 'Nirmala UI', 'Segoe UI', system-ui, sans-serif;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: clamp(1.3rem, 1.1rem + 0.8vw, 1.6rem);
+  --text-title: clamp(1.9rem, 1.4rem + 2vw, 2.9rem);
+
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 22px;
+
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 18px 40px -26px rgba(63, 10, 13, 0.55), 0 2px 6px -2px rgba(63, 10, 13, 0.12);
+  --shadow-lift: 0 22px 48px -24px rgba(63, 10, 13, 0.6);
+
+  --duration-fast: 150ms;
+  --duration-normal: 280ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --page-gutter: clamp(16px, 3vw, 40px);
+  --header-height: 76px;
+  color-scheme: light;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: 1.55;
+  color: var(--ink-900);
+  background-color: var(--sandal-100);
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(142, 27, 27, 0.11) 1.1px, transparent 1.6px),
+    radial-gradient(circle at 14px 14px, rgba(201, 138, 18, 0.12) 1px, transparent 1.5px);
+  background-size: 28px 28px, 28px 28px;
+}
+
+img, svg { max-width: 100%; }
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: var(--kumkum-700); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { color: var(--kumkum-900); }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 400; line-height: 1.15; margin: 0; color: var(--kumkum-900); }
+p { margin: 0; }
+[hidden] { display: none !important; }
+
+:focus-visible {
+  outline: 3px solid var(--turmeric-500);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection { background: var(--turmeric-300); color: var(--kumkum-950); }
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ——— Atmosphere ——— */
+.backdrop { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+.backdrop__glow {
+  position: absolute; inset: -20% -10% auto -10%; height: 70vh;
+  background: radial-gradient(ellipse 60% 55% at 50% 0%, rgba(238, 138, 28, 0.2), transparent 70%);
+}
+.backdrop__gopuram {
+  position: absolute;
+  right: -3vw; bottom: -2vh;
+  width: min(40vw, 500px);
+  aspect-ratio: 400 / 560;
+  background: url('/img/gopuram.svg') no-repeat center bottom / contain;
+  opacity: 0.09;
+}
+.backdrop__gopuram--far {
+  right: auto; left: -4vw;
+  width: min(24vw, 300px);
+  opacity: 0.05;
+  transform: scaleX(-1);
+}
+
+.app { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; }
+
+.boot {
+  flex: 1; display: grid; place-content: center; gap: 8px; text-align: center; color: var(--ink-500);
+}
+.boot__om { font-family: var(--font-display); font-size: 3.5rem; color: var(--kumkum-700); animation: breathe 2.4s ease-in-out infinite; }
+
+@keyframes breathe { 50% { opacity: 0.55; transform: scale(0.96); } }
+
+/* ——— Header ——— */
+.site-header {
+  position: sticky; top: 0; z-index: 20;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 40%),
+    linear-gradient(100deg, var(--kumkum-900), var(--kumkum-700) 55%, var(--kumkum-800));
+  color: var(--sandal-50);
+  box-shadow: 0 10px 30px -18px rgba(44, 7, 9, 0.9);
+}
+.site-header::after {
+  /* gold temple-wall zigzag */
+  content: '';
+  position: absolute; left: 0; right: 0; bottom: -7px; height: 8px;
+  background:
+    linear-gradient(135deg, var(--turmeric-500) 33%, transparent 34%) 0 0 / 14px 8px repeat-x,
+    linear-gradient(225deg, var(--turmeric-500) 33%, transparent 34%) 0 0 / 14px 8px repeat-x;
+}
+.site-header__inner {
+  max-width: 1320px; margin: 0 auto;
+  min-height: var(--header-height);
+  padding-inline: var(--page-gutter);
+  display: flex; align-items: center; gap: clamp(12px, 2.5vw, 32px);
+}
+
+.brand { display: flex; align-items: center; gap: 12px; color: inherit; text-decoration: none; min-width: 0; }
+.brand:hover { color: inherit; }
+.brand__om {
+  flex: none; width: 46px; height: 46px; display: grid; place-items: center;
+  font-family: var(--font-display); font-size: 1.7rem; line-height: 1;
+  color: var(--kumkum-900);
+  background: radial-gradient(circle at 35% 30%, var(--turmeric-300), var(--turmeric-500) 60%, var(--turmeric-600));
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px rgba(241, 207, 122, 0.25), 0 0 22px rgba(238, 138, 28, 0.45);
+}
+.brand__text { display: flex; flex-direction: column; min-width: 0; }
+.brand__name { font-family: var(--font-display); font-size: 1.25rem; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.brand__tag { font-size: var(--text-xs); letter-spacing: 0.14em; text-transform: uppercase; color: var(--turmeric-300); }
+
+.main-nav { display: flex; gap: 4px; margin-left: auto; }
+.main-nav__link {
+  position: relative;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 14px;
+  color: rgba(255, 251, 243, 0.82);
+  text-decoration: none; font-weight: 500; font-size: var(--text-sm);
+  border-radius: 999px;
+  transition: background-color var(--duration-fast), color var(--duration-fast);
+}
+.main-nav__link svg { width: 18px; height: 18px; flex: none; }
+.main-nav__link:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
+.main-nav__link.is-active { color: var(--kumkum-950); background: var(--turmeric-300); }
+
+.user-chip { display: flex; align-items: center; gap: 10px; }
+.user-chip__who { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.15; }
+.user-chip__name { font-weight: 600; font-size: var(--text-sm); }
+.user-chip__role { font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--turmeric-300); }
+
+.thoranam {
+  position: sticky; top: calc(var(--header-height) + 1px); z-index: 19;
+  height: 38px; margin-bottom: -38px;
+  background: url('/img/thoranam.svg') repeat-x 0 0 / 64px 44px;
+  pointer-events: none;
+  filter: drop-shadow(0 3px 2px rgba(44, 7, 9, 0.18));
+}
+
+.page {
+  width: 100%; max-width: 1320px;
+  margin: 0 auto;
+  /* Bottom space lets the last rows scroll clear of the fixed credits badge. */
+  padding: 64px var(--page-gutter) 140px;
+  flex: 1;
+}
+
+/* ——— Crafted-with-devotion badge ——— */
+.crafted-badge {
+  position: fixed; right: 18px; bottom: 16px; z-index: 30;
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 16px 7px 8px;
+  color: var(--sandal-50);
+  background: linear-gradient(120deg, var(--kumkum-900), var(--kumkum-700));
+  border: 1px solid var(--turmeric-500);
+  border-radius: 999px;
+  box-shadow: 0 0 0 3px rgba(224, 165, 38, 0.16), 0 14px 30px -12px rgba(44, 7, 9, 0.7);
+}
+/* While the page scrolls the badge shrinks to its lamp so rows passing beneath stay readable. */
+.crafted-badge__text {
+  max-width: 220px;
+  transition: max-width var(--duration-normal) var(--ease-out), opacity var(--duration-fast);
+}
+.crafted-badge.is-compact { gap: 0; padding-right: 8px; }
+.crafted-badge.is-compact .crafted-badge__text { max-width: 0; opacity: 0; overflow: hidden; }
+.crafted-badge.is-compact:hover { gap: 10px; padding-right: 16px; }
+.crafted-badge.is-compact:hover .crafted-badge__text { max-width: 220px; opacity: 1; }
+
+.crafted-badge__lamp {
+  width: 30px; height: 30px; flex: none;
+  padding: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 50%;
+}
+.crafted-badge__lamp .bowl { fill: var(--turmeric-500); }
+.crafted-badge__lamp .flame {
+  fill: #FFB547;
+  transform-origin: 16px 16px;
+  animation: flicker 2.6s ease-in-out infinite;
+  filter: drop-shadow(0 0 3px rgba(255, 170, 60, 0.9));
+}
+.crafted-badge__text { display: flex; flex-direction: column; line-height: 1.1; white-space: nowrap; }
+.crafted-badge__small { font-family: var(--font-display); font-size: 0.78rem; color: var(--turmeric-100); }
+.crafted-badge__brand {
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.16em;
+  background: linear-gradient(90deg, var(--turmeric-300), #fff3c9, var(--turmeric-500));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+@keyframes flicker {
+  0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  30% { transform: scale(0.94, 1.04) rotate(-2deg); opacity: 0.92; }
+  60% { transform: scale(1.03, 0.97) rotate(2deg); }
+}
+
+@media (max-width: 1080px) {
+  .main-nav__label { display: none; }
+  .main-nav__link { padding: 10px 12px; }
+}
+
+@media (max-width: 760px) {
+  :root { --header-height: 64px; }
+  .site-header__inner { flex-wrap: wrap; row-gap: 0; padding-block: 8px; }
+  .brand__tag { display: none; }
+  .brand__om { width: 38px; height: 38px; font-size: 1.35rem; }
+  .brand__name { font-size: 1.05rem; }
+  .user-chip { margin-left: auto; }
+  .user-chip__who { display: none; }
+  .main-nav { order: 3; width: 100%; margin: 6px 0 2px; justify-content: space-between; }
+  .main-nav__link { flex: 1; justify-content: center; }
+  .thoranam { display: none; }
+  .page { padding-top: 32px; }
+  .crafted-badge { right: 50%; transform: translateX(50%); bottom: 10px; padding-block: 5px; }
+  .crafted-badge__lamp { width: 24px; height: 24px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
