@@ -3,8 +3,18 @@ import { confirmDialog, h, icon, printElement, toast } from '../dom.js';
 import {
   addressLines, ageFrom, formatDate, formatPhone, formatRupees, formatTimestamp, initials, relationPrefix, tamilName,
 } from '../format.js';
+import { tamilDate } from '../tamilCalendar.js';
 
 const dash = () => h('span', { class: 'muted' }, '—');
+
+function tamilBirthday(dob) {
+  const result = tamilDate(dob);
+  if (!result) return '';
+  return h('span', { class: 'tamil-birthday-fact' },
+    h('strong', {}, `${result.month.en} ${result.day}`), ' ',
+    h('span', { class: 'ta' }, `${result.month.ta} ${result.day}`),
+    h('span', { class: 'muted small' }, `${result.year.en} (${result.year.ta}) year`));
+}
 
 function fact(label, value) {
   return [h('dt', {}, label), h('dd', {}, value || dash())];
@@ -21,10 +31,11 @@ function familyTable(members, reference) {
   if (members.length === 0) return h('p', { class: 'muted' }, 'No family members recorded.');
   return h('div', { class: 'table-wrap' },
     h('table', { class: 'data-table' },
-      h('thead', {}, h('tr', {}, ['Name', 'Relation', 'Raasi', 'Natchathram'].map((t) => h('th', { scope: 'col' }, t)))),
+      h('thead', {}, h('tr', {}, ['Name', 'Relation', 'Phone', 'Raasi', 'Natchathram'].map((t) => h('th', { scope: 'col' }, t)))),
       h('tbody', {}, members.map((m) => h('tr', {},
         h('td', { dataset: { label: 'Name' } }, h('strong', {}, m.name)),
         h('td', { dataset: { label: 'Relation' } }, m.relation || dash()),
+        h('td', { dataset: { label: 'Phone' }, class: 'nowrap' }, m.phone ? h('a', { href: `tel:${m.phone}` }, formatPhone(m.phone)) : dash()),
         h('td', { dataset: { label: 'Raasi' } }, m.raasi ? [m.raasi, ' ', h('span', { class: 'ta small' }, tamilName(reference.raasis, m.raasi))] : dash()),
         h('td', { dataset: { label: 'Natchathram' } }, m.natchathram ? [m.natchathram, ' ', h('span', { class: 'ta small' }, tamilName(reference.nakshatras, m.natchathram))] : dash()))))));
 }
@@ -84,7 +95,9 @@ export async function renderDevoteeDetail(ctx, id) {
           person.father_name ? h('span', {}, `${relationPrefix(person.gender)} ${person.father_name}`) : null,
           person.gender ? h('span', {}, person.gender) : null,
           age !== null ? h('span', {}, `${age} yrs`) : null,
-          h('span', { class: `badge badge--${person.member_type}` }, person.member_type))),
+          person.occupation ? h('span', {}, person.occupation) : null,
+          h('span', { class: `badge badge--${person.member_type}` }, person.member_type),
+          person.hundiyal_wanted ? h('span', { class: 'badge badge--hundiyal' }, 'Hundiyal wanted') : null)),
       h('div', { class: 'record__actions no-print' },
         h('a', { class: 'btn btn--sm', href: `#/pooja?q=${encodeURIComponent(person.phone)}` }, icon('star'), 'Pooja card'),
         h('button', { type: 'button', class: 'btn btn--sm', onclick: () => printElement(record) }, icon('print'), 'Print'),
@@ -99,6 +112,9 @@ export async function renderDevoteeDetail(ctx, id) {
           fact('Alternate', person.alt_phone ? h('a', { href: `tel:${person.alt_phone}` }, formatPhone(person.alt_phone)) : ''),
           fact('Email', person.email ? h('a', { href: `mailto:${person.email}` }, person.email) : ''),
           fact('Date of birth', formatDate(person.dob)),
+          fact('Tamil birthday', tamilBirthday(person.dob)),
+          fact('Occupation', person.occupation),
+          fact('Hundiyal wanted', person.hundiyal_wanted ? 'Yes' : 'No'),
           fact('Native place', person.native_place))),
 
       h('section', { class: 'record-section' },

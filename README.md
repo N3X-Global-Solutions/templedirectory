@@ -15,13 +15,27 @@ A small web application for a Kula Deivam (family deity) temple to keep a regist
 | **Mailing**: view addresses for chosen devotees or everyone shown | ✅ | ✅ |
 | Mailing: print address labels and download a CSV | ✅ | optional (`VIEWER_CAN_EXPORT`) |
 | Settings: change passwords, export the full directory, download a database backup | ✅ | — |
+| **Registration link**: share a form with devotees and review what they send | ✅ | — |
 
 ### Fields recorded
 
-Name, father's name, gender, phone (**unique**), alternate phone, email, date of birth, address, city, state, pincode, native place, raasi, natchathram, caste, gothram, member type (Devotee / Donor / Trustee / Volunteer), notes. Each record can also hold:
+Name, father's name, gender, phone (**unique**), alternate phone, email, date of birth, occupation, hundiyal wanted (Yes/No), address, city, state, pincode, native place, raasi, natchathram, caste, gothram, member type (Devotee / Donor / Trustee / Volunteer), notes. Each record can also hold:
 
-- **Family members**, added one row at a time: name, relation, raasi and natchathram
+- **Family members**, added one row at a time: name, relation, phone (optional), raasi and natchathram
 - **Donations**, added one row at a time: date, amount, purpose, payment mode and receipt number
+
+### Tamil birthday
+
+The Tamil birthday is worked out automatically from the English date of birth. For example, 17/02/2002 is **Maasi 5, Vishu year**.
+
+- **Where it appears:** under the date-of-birth field while typing, on the record page, and in the full CSV export. The Pooja Lookup card shows only the Tamil birth month, so the full date of birth stays private.
+- **How it's calculated:** from the Sun's actual position, using the Lahiri reckoning that Tamil panchangams use. It follows the Tamil rule: if the Sun enters the new rasi before sunset, that day is day 1 of the month; otherwise day 1 is the next day.
+- **Accuracy:**
+  - It was checked against Tamil New Year and Thai Pongal dates for 2023–2026.
+  - The month is always reliable.
+  - The day number can differ by one from a printed panchangam only when the month changes within minutes of sunset.
+
+The directory can also be searched by occupation or by a family member's phone number, and filtered by occupation or hundiyal. The hundiyal filter works on the Mailing page too, so you can list everyone who wants a hundiyal.
 
 ### Validation rules
 
@@ -57,8 +71,29 @@ Open http://localhost:3000. Because the server listens on `0.0.0.0` by default, 
 | `SECURE_COOKIES` | false | Set to `true` when served over HTTPS |
 | `TRUST_PROXY` | false | Number of reverse proxies in front of the app (e.g. `1` behind nginx or Caddy) |
 | `VIEWER_CAN_EXPORT` | false | Lets the viewer print labels and download mailing CSVs |
+| `PUBLIC_FORM_AUTO_APPROVE` | false | `true` adds devotees straight from the public form, with no review |
+| `PUBLIC_FORM_RATE_LIMIT` | 20 | Public form submissions per hour from one internet connection |
+| `PUBLIC_FORM_MAX_PENDING` | 500 | Most forms that may wait for review at once |
 | `API_RATE_LIMIT` | 600 | API requests per minute from one client IP |
 | `EXPORT_RATE_LIMIT` | 20 | CSV exports and backups per minute from one client IP |
+
+## Devotee registration link
+
+Devotees can fill in their own details instead of the office typing them.
+
+1. Go to **Settings → Devotee registration form** and press **Share on WhatsApp**, or **Copy** the link and paste it anywhere (WhatsApp group, SMS, notice board).
+2. A devotee opens the link on their phone and fills in the form. They see only the form — no directory, no donations, no notes, and no sign-in.
+3. Their form arrives under **Registrations**, and the tab shows how many are waiting.
+4. You check the details and press **Add to directory**, or **Do not add**. Approved forms create the devotee record; rejected ones are kept in the "Not added" list.
+
+**Safety of the link**
+
+- The link contains a long secret code. Anyone who has it can open the form, but nothing else.
+- Submissions never enter the directory on their own — an admin approves each one. (Set `PUBLIC_FORM_AUTO_APPROVE=true` if you would rather they go straight in.)
+- Every submission gets the same thank-you, so nobody can use the form to check whether a particular phone number belongs to a temple devotee. If the number is already in the directory, **you** see a warning on the review card and can update the existing record instead.
+- **Turn the link off** closes the form to everyone; **Create a new link** replaces it, so an old link that reached the wrong people stops working.
+- Submissions are limited per internet connection, only so many forms may wait for review at once, and a hidden trap field catches spam bots.
+- Behind a reverse proxy or Cloudflare, set `TRUST_PROXY` (the deploy kit sets `TRUST_PROXY=1`), otherwise every devotee looks like the same visitor and they share one submission limit.
 
 ## Hosting online
 

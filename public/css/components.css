@@ -127,6 +127,7 @@
 .badge--Volunteer { color: var(--leaf-600); background: var(--leaf-100); }
 .badge--Devotee { color: var(--kumkum-700); background: var(--kumkum-100); }
 .badge--muted { color: var(--ink-500); background: rgba(122, 96, 82, 0.12); }
+.badge--hundiyal { color: #6b3d00; background: #FFE3B8; box-shadow: 0 0 0 1px rgba(238, 138, 28, 0.45) inset; }
 .badge--warn { color: #8a4b00; background: #FDEBD0; }
 
 .chip {

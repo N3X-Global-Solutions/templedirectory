@@ -1,9 +1,16 @@
 import { h, icon } from '../dom.js';
 import { raasiOptions, starOptions } from '../format.js';
 
-export const FILTER_KEYS = ['gender', 'memberType', 'raasi', 'natchathram', 'state', 'city', 'caste', 'gothram', 'donations'];
+export const FILTER_KEYS = [
+  'gender', 'memberType', 'raasi', 'natchathram', 'state', 'city', 'caste', 'gothram', 'occupation', 'hundiyal', 'donations',
+];
 
 const plain = (values) => values.map((value) => ({ value, label: value }));
+const YES_NO_LABELS = Object.freeze({
+  hundiyal: { yes: 'Wants hundiyal', no: 'No hundiyal' },
+  donations: { yes: 'Has donated', no: 'No donations yet' },
+});
+const yesNoOptions = (key) => Object.entries(YES_NO_LABELS[key]).map(([value, label]) => ({ value, label }));
 
 const FILTER_DEFS = [
   { key: 'raasi', label: 'Raasi', options: ({ reference }) => raasiOptions(reference) },
@@ -14,7 +21,9 @@ const FILTER_DEFS = [
   { key: 'state', label: 'State', options: ({ facets }) => plain(facets.states) },
   { key: 'caste', label: 'Caste', options: ({ facets }) => plain(facets.castes) },
   { key: 'gothram', label: 'Gothram', options: ({ facets }) => plain(facets.gothrams) },
-  { key: 'donations', label: 'Donations', options: () => [{ value: 'yes', label: 'Has donated' }, { value: 'no', label: 'No donations yet' }] },
+  { key: 'occupation', label: 'Occupation', options: ({ facets }) => plain(facets.occupations) },
+  { key: 'hundiyal', label: 'Hundiyal', options: () => yesNoOptions('hundiyal') },
+  { key: 'donations', label: 'Donations', options: () => yesNoOptions('donations') },
 ];
 
 const LABELS = Object.fromEntries(FILTER_DEFS.map((def) => [def.key, def.label]));
@@ -89,7 +98,7 @@ export function filterChips(values, onRemove) {
   if (entries.length === 0) return null;
   return h('div', { class: 'active-filters', 'aria-label': 'Active filters' },
     entries.map(([key, value]) => h('span', { class: 'chip' },
-      h('span', {}, `${LABELS[key] ?? key}: ${key === 'donations' ? (value === 'yes' ? 'Has donated' : 'No donations') : value}`),
+      h('span', {}, `${LABELS[key] ?? key}: ${YES_NO_LABELS[key]?.[value] ?? value}`),
       h('button', { type: 'button', 'aria-label': `Remove ${LABELS[key]} filter`, onclick: () => onRemove(key) }, icon('close')))));
 }
 

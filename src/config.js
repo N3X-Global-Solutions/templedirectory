@@ -5,6 +5,10 @@ const DEFAULT_SESSION_HOURS = 12;
 // Per client IP, per minute. Several office devices behind one router share an IP, so the API cap is generous.
 const DEFAULT_API_RATE_LIMIT = 600;
 const DEFAULT_EXPORT_RATE_LIMIT = 20;
+// Public form submissions per hour from one IP. Mobile networks share IPs, so this is generous.
+const DEFAULT_PUBLIC_FORM_RATE_LIMIT = 20;
+// Ceiling on forms waiting for review, so a spammed link cannot fill the database.
+const DEFAULT_PUBLIC_FORM_MAX_PENDING = 500;
 
 function readBoolean(value, fallback) {
   if (value === undefined || value === '') return fallback;
@@ -49,5 +53,9 @@ export function loadConfig(env = process.env) {
     viewerCanExport: readBoolean(env.VIEWER_CAN_EXPORT, false),
     apiRateLimitPerMinute: readPositiveInt(env.API_RATE_LIMIT, DEFAULT_API_RATE_LIMIT),
     exportRateLimitPerMinute: readPositiveInt(env.EXPORT_RATE_LIMIT, DEFAULT_EXPORT_RATE_LIMIT),
+    publicFormRateLimitPerHour: readPositiveInt(env.PUBLIC_FORM_RATE_LIMIT, DEFAULT_PUBLIC_FORM_RATE_LIMIT),
+    publicFormMaxPending: readPositiveInt(env.PUBLIC_FORM_MAX_PENDING, DEFAULT_PUBLIC_FORM_MAX_PENDING),
+    // Off by default: submissions wait for an admin to approve them.
+    publicFormAutoApprove: readBoolean(env.PUBLIC_FORM_AUTO_APPROVE, false),
   });
 }

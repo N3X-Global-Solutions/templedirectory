@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS devotees (
   gothram      TEXT NOT NULL DEFAULT '',
   member_type  TEXT NOT NULL DEFAULT 'Devotee',
   notes        TEXT NOT NULL DEFAULT '',
-  version      INTEGER NOT NULL DEFAULT 1,
+  -- version, occupation, hundiyal_wanted: see ADDED_COLUMNS below
   created_by   TEXT NOT NULL DEFAULT '',
   updated_by   TEXT NOT NULL DEFAULT '',
   created_at   TEXT NOT NULL DEFAULT (datetime('now')),
@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS family_members (
   relation    TEXT NOT NULL DEFAULT '',
   raasi       TEXT NOT NULL DEFAULT '',
   natchathram TEXT NOT NULL DEFAULT ''
+  -- phone: see ADDED_COLUMNS below
 );
 
 CREATE INDEX IF NOT EXISTS idx_family_devotee ON family_members (devotee_id);
@@ -73,6 +74,29 @@ CREATE TABLE IF NOT EXISTS donations (
 );
 
 CREATE INDEX IF NOT EXISTS idx_donations_devotee ON donations (devotee_id);
+
+-- Small key/value store for things the admin can change at runtime (e.g. the public form link).
+CREATE TABLE IF NOT EXISTS settings (
+  key        TEXT PRIMARY KEY,
+  value      TEXT NOT NULL,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Devotees who filled in the shared public form; they join the directory once an admin approves.
+CREATE TABLE IF NOT EXISTS registrations (
+  id           INTEGER PRIMARY KEY,
+  status       TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  name         TEXT NOT NULL,
+  phone        TEXT NOT NULL,
+  payload      TEXT NOT NULL,
+  submitted_at TEXT NOT NULL DEFAULT (datetime('now')),
+  reviewed_at  TEXT NOT NULL DEFAULT '',
+  reviewed_by  TEXT NOT NULL DEFAULT '',
+  devotee_id   INTEGER REFERENCES devotees(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_registrations_status ON registrations (status, submitted_at DESC);
+CREATE INDEX IF NOT EXISTS idx_registrations_phone ON registrations (phone);
 `;
 
 export function openDatabase(dbPath) {
@@ -86,11 +110,23 @@ export function openDatabase(dbPath) {
   return db;
 }
 
-/** Brings databases created by earlier versions up to the current schema. */
+/**
+ * Columns added after the first release. Applied to new and existing databases alike,
+ * so an older database file picks them up automatically on the next start.
+ */
+const ADDED_COLUMNS = Object.freeze([
+  { table: 'devotees', column: 'version', definition: 'INTEGER NOT NULL DEFAULT 1' },
+  { table: 'devotees', column: 'occupation', definition: "TEXT NOT NULL DEFAULT ''" },
+  { table: 'devotees', column: 'hundiyal_wanted', definition: 'INTEGER NOT NULL DEFAULT 0 CHECK (hundiyal_wanted IN (0, 1))' },
+  { table: 'family_members', column: 'phone', definition: "TEXT NOT NULL DEFAULT ''" },
+]);
+
 function migrate(db) {
-  const devoteeColumns = new Set(db.prepare('PRAGMA table_info(devotees)').all().map((column) => column.name));
-  if (!devoteeColumns.has('version')) {
-    db.exec('ALTER TABLE devotees ADD COLUMN version INTEGER NOT NULL DEFAULT 1');
+  const existingColumns = (table) => new Set(db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name));
+  for (const { table, column, definition } of ADDED_COLUMNS) {
+    if (!existingColumns(table).has(column)) {
+      db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+    }
   }
 }
 

@@ -1,8 +1,101 @@
 import { api, downloadFile } from '../api.js';
-import { h, icon, toast } from '../dom.js';
+import { confirmDialog, h, icon, toast } from '../dom.js';
 import { field, input } from './formControls.js';
 
 const MIN_PASSWORD = 8;
+
+/** Copy that still works on a plain-HTTP office network, where the clipboard API is blocked. */
+async function copyText(field_, text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast('Link copied. Paste it into WhatsApp or SMS.', 'success');
+  } catch {
+    field_.select();
+    toast('Press Ctrl+C (or long-press → Copy) to copy the selected link.');
+  }
+}
+
+function registrationLinkCard(templeName) {
+  const linkInput = input('registrationLink', { readonly: true, class: 'input link-card__input', 'aria-label': 'Registration form link' });
+  const statusBadge = h('span', { class: 'badge' });
+  const toggleButton = h('button', { type: 'button', class: 'btn btn--sm' });
+  const pendingLine = h('p', { class: 'muted small' });
+  let link = { url: '', enabled: true };
+
+  const shareOnWhatsApp = () => {
+    const message = `${templeName} — devotee registration form. Please fill in your family details: ${link.url}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank', 'noopener');
+  };
+
+  function paint() {
+    linkInput.value = link.url;
+    statusBadge.textContent = link.enabled ? 'Link is on' : 'Link is off';
+    statusBadge.className = `badge ${link.enabled ? 'badge--Volunteer' : 'badge--muted'}`;
+    toggleButton.replaceChildren(icon(link.enabled ? 'close' : 'check'), link.enabled ? 'Turn the link off' : 'Turn the link on');
+    linkInput.disabled = !link.enabled;
+  }
+
+  async function run(work) {
+    try {
+      link = await work();
+      paint();
+    } catch (error) {
+      toast(error.message, 'error');
+    }
+  }
+
+  toggleButton.addEventListener('click', () => run(async () => {
+    const { data } = await api.put('/registration-link', { enabled: !link.enabled });
+    toast(data.enabled ? 'The form link is on again.' : 'The form link is off. Nobody can open it now.', 'success');
+    return data;
+  }));
+
+  const rotateButton = h('button', { type: 'button', class: 'btn btn--sm btn--danger' }, icon('key'), 'Create a new link');
+  rotateButton.addEventListener('click', async () => {
+    const confirmed = await confirmDialog({
+      title: 'Create a new link?',
+      message: 'The link you shared earlier will stop working, so anyone who still has it cannot open the form. Use this if the old link reached the wrong people.',
+      confirmText: 'Create new link',
+      danger: true,
+    });
+    if (!confirmed) return;
+    run(async () => {
+      const { data } = await api.post('/registration-link/rotate', {});
+      toast('New link created. Share it again with your devotees.', 'success');
+      return data;
+    });
+  });
+
+  const card = h('section', { class: 'panel panel--padded settings-card settings-card--wide' },
+    h('div', { class: 'settings-card__icon' }, icon('users')),
+    h('div', { class: 'settings-card__heading' },
+      h('h2', { class: 'settings-card__title' }, 'Devotee registration form'),
+      statusBadge),
+    h('p', { class: 'muted small' }, 'Share this link on WhatsApp so devotees can fill in their own details. Their forms wait under Registrations until you add them to the directory.'),
+    h('div', { class: 'link-card__row' },
+      linkInput,
+      h('button', { type: 'button', class: 'btn', onclick: () => copyText(linkInput, link.url) }, icon('tag'), 'Copy')),
+    h('div', { class: 'settings-card__buttons' },
+      h('button', { type: 'button', class: 'btn btn--gold', onclick: shareOnWhatsApp }, icon('phone'), 'Share on WhatsApp'),
+      h('a', { class: 'btn', href: '#/registrations' }, icon('eye'), 'View registrations'),
+      toggleButton,
+      rotateButton),
+    pendingLine);
+
+  (async () => {
+    await run(async () => (await api.get('/registration-link')).data);
+    try {
+      const { data } = await api.get('/registrations/summary');
+      pendingLine.textContent = data.pending
+        ? `${data.pending} form${data.pending === 1 ? '' : 's'} waiting for review.`
+        : 'No forms are waiting for review.';
+    } catch {
+      // The count is a nicety; the link itself is what matters here.
+    }
+  })();
+
+  return card;
+}
 
 function passwordForm({ title, description, iconName, withCurrent, submitLabel, onSubmit }) {
   const current = withCurrent ? input('currentPassword', { type: 'password', autocomplete: 'current-password', required: true }) : null;
@@ -81,6 +174,7 @@ export async function renderSettings(ctx) {
         h('p', { class: 'eyebrow' }, 'Administrator'),
         h('h1', { class: 'page-title' }, 'Settings'),
         h('p', { class: 'page-sub' }, 'Manage sign-in passwords and keep safe copies of the directory.'))),
+    registrationLinkCard(ctx.session.temple.name),
     h('div', { class: 'settings-grid' },
       passwordForm({
         title: 'Your admin password',

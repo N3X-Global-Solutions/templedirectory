@@ -27,6 +27,9 @@ const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const PINCODE_PATTERN = /^[1-9]\d{5}$/;
 const AMOUNT_PATTERN = /^(\d{1,9})(?:\.(\d{1,2}))?$/;
 
+const YES_VALUES = new Set(['yes', 'true', '1']);
+const NO_VALUES = new Set(['no', 'false', '0', '']);
+
 const isPlainObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 
 /**
@@ -116,7 +119,18 @@ function createReader(source, errors, prefix = '') {
     return { raasi, natchathram };
   };
 
-  return { text, choice, date, phone, stars, fail };
+  /** Yes/No answer from a checkbox, radio or API client; missing means No. */
+  const yesNo = (key, label) => {
+    const raw = source[key];
+    if (raw === undefined || raw === null || raw === false || raw === 0) return false;
+    if (raw === true || raw === 1) return true;
+    const answer = typeof raw === 'string' ? raw.trim().toLowerCase() : null;
+    if (YES_VALUES.has(answer)) return true;
+    if (!NO_VALUES.has(answer)) fail(key, `${label} must be Yes or No`);
+    return false;
+  };
+
+  return { text, choice, date, phone, stars, yesNo, fail };
 }
 
 const hasAnyValue = (item) => Object.values(item).some((v) => v !== null && v !== undefined && String(v).trim() !== '');
@@ -147,6 +161,7 @@ function readFamilyMembers(value, errors) {
     return [{
       name: read.text('name', 'Family member name', { max: LIMITS.name, required: true }),
       relation: read.text('relation', 'Relation', { max: LIMITS.relation }),
+      phone: read.phone('phone', 'Family member phone'),
       ...read.stars(),
     }];
   });
@@ -208,6 +223,8 @@ export function validateDevotee(input) {
     alt_phone: altPhone,
     email,
     dob: read.date('dob', 'Date of birth'),
+    occupation: read.text('occupation', 'Occupation', { max: LIMITS.text }),
+    hundiyal_wanted: read.yesNo('hundiyal_wanted', 'Hundiyal wanted'),
     address: read.text('address', 'Address', { max: LIMITS.address, multiline: true }),
     city: read.text('city', 'City', { max: LIMITS.text }),
     state: read.text('state', 'State', { max: LIMITS.text }),
@@ -223,6 +240,15 @@ export function validateDevotee(input) {
   };
 
   return Object.keys(errors).length > 0 ? { data: null, errors } : { data, errors: null };
+}
+
+/**
+ * A devotee filling in the shared public form. The same rules as the office form,
+ * except donations, notes and member type are never accepted from the public.
+ */
+export function validatePublicRegistration(input) {
+  if (!isPlainObject(input)) return { data: null, errors: { _form: 'Invalid request body' } };
+  return validateDevotee({ ...input, donations: [], notes: '', member_type: 'Devotee' });
 }
 
 export const MIN_PASSWORD_LENGTH = 8;

@@ -101,6 +101,31 @@ describe('validateDevotee', () => {
     const { errors } = validateDevotee(sampleDevotee({ name: 'x'.repeat(101) }));
     assert.match(errors.name, /100 characters/);
   });
+
+  test('reads occupation and limits its length', () => {
+    assert.equal(validateDevotee(sampleDevotee({ occupation: '  School   Teacher ' })).data.occupation, 'School Teacher');
+    assert.ok(validateDevotee(sampleDevotee({ occupation: 'x'.repeat(121) })).errors.occupation);
+  });
+
+  test('hundiyal wanted accepts yes/no in common forms and defaults to no', () => {
+    for (const yes of [true, 'yes', 'Yes', '1', 1, 'true']) {
+      assert.equal(validateDevotee(sampleDevotee({ hundiyal_wanted: yes })).data.hundiyal_wanted, true, String(yes));
+    }
+    for (const no of [false, 'no', 'NO', '0', 0, 'false', '', undefined, null]) {
+      assert.equal(validateDevotee(sampleDevotee({ hundiyal_wanted: no })).data.hundiyal_wanted, false, String(no));
+    }
+    assert.match(validateDevotee(sampleDevotee({ hundiyal_wanted: 'maybe' })).errors.hundiyal_wanted, /Yes or No/);
+  });
+
+  test('family member phone is optional, normalised and validated per row', () => {
+    const { data } = validateDevotee(sampleDevotee({
+      family_members: [{ name: 'Valli', phone: '+91 94440-12345' }, { name: 'Karthik' }],
+    }));
+    assert.equal(data.family_members[0].phone, '9444012345');
+    assert.equal(data.family_members[1].phone, '');
+    const { errors } = validateDevotee(sampleDevotee({ family_members: [{ name: 'Valli', phone: '123' }] }));
+    assert.ok(errors['family_members.0.phone']);
+  });
 });
 
 describe('helpers', () => {

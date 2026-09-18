@@ -3,7 +3,8 @@ import { SORT_COLUMNS } from './repositories/devotees.js';
 export const PAGE_SIZES = Object.freeze([10, 25, 50, 100]);
 export const DEFAULT_PAGE_SIZE = 25;
 export const FILTER_KEYS = Object.freeze([
-  'gender', 'memberType', 'raasi', 'natchathram', 'state', 'city', 'caste', 'gothram', 'donations',
+  'gender', 'memberType', 'raasi', 'natchathram', 'state', 'city', 'caste', 'gothram', 'occupation',
+  'hundiyal', 'donations',
 ]);
 
 const MAX_TEXT_LENGTH = 100;

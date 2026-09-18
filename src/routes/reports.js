@@ -8,6 +8,7 @@ import { ROLES } from '../auth/users.js';
 import { requireRole } from '../auth/middleware.js';
 import { parseIdList, parseListCriteria } from '../criteria.js';
 import { oneLine, rupees, sendCsv, toCsv } from '../csv.js';
+import { formatTamilDate, tamilDate } from '../../public/js/tamilCalendar.js';
 
 const POOJA_MIN_QUERY = 2;
 const POOJA_MAX_QUERY = 100;
@@ -33,6 +34,7 @@ const FULL_EXPORT_COLUMNS = [
   { header: 'Alternate Phone', value: (r) => r.alt_phone },
   { header: 'Email', value: (r) => r.email },
   { header: 'Date of Birth', value: (r) => r.dob },
+  { header: 'Tamil Birthday', value: (r) => formatTamilDate(r.dob) },
   { header: 'Address', value: (r) => oneLine(r.address) },
   { header: 'City', value: (r) => r.city },
   { header: 'State', value: (r) => r.state },
@@ -43,6 +45,8 @@ const FULL_EXPORT_COLUMNS = [
   { header: 'Caste', value: (r) => r.caste },
   { header: 'Gothram', value: (r) => r.gothram },
   { header: 'Member Type', value: (r) => r.member_type },
+  { header: 'Occupation', value: (r) => r.occupation },
+  { header: 'Hundiyal Wanted', value: (r) => (r.hundiyal_wanted ? 'Yes' : 'No') },
   { header: 'Family Members', value: (r) => r.family_members_text },
   { header: 'Total Donations (INR)', value: (r) => rupees(r.total_donation_paise) },
   { header: 'Notes', value: (r) => oneLine(r.notes) },
@@ -100,7 +104,12 @@ export function createReportsRouter({ db, devotees, config, logger, exportLimite
     if (q.length < POOJA_MIN_QUERY) {
       throw new HttpError(400, `Type at least ${POOJA_MIN_QUERY} characters of a name or phone number`);
     }
-    sendData(res, devotees.poojaLookup(q.slice(0, POOJA_MAX_QUERY)));
+    // Only the Tamil birth month is shared here — the full date of birth stays on the record page.
+    const households = devotees.poojaLookup(q.slice(0, POOJA_MAX_QUERY)).map(({ dob, ...household }) => ({
+      ...household,
+      tamil_birth_month: tamilDate(dob)?.month ?? null,
+    }));
+    sendData(res, households);
   });
 
   return router;

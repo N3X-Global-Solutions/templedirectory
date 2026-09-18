@@ -1,4 +1,5 @@
 import { api } from './api.js';
+import { watchCreditsBadge } from './creditsBadge.js';
 import { h, icon, loadingView, emptyState, toast } from './dom.js';
 import { renderLogin } from './views/login.js';
 import { renderDirectory } from './views/directory.js';
@@ -6,6 +7,7 @@ import { renderDevoteeDetail } from './views/detail.js';
 import { renderDevoteeForm } from './views/form.js';
 import { renderMailing } from './views/mailing.js';
 import { renderPooja } from './views/pooja.js';
+import { renderRegistrations } from './views/registrations.js';
 import { renderSettings } from './views/settings.js';
 
 const ROUTES = [
@@ -15,6 +17,7 @@ const ROUTES = [
   { pattern: /^\/devotees\/(\d+)\/edit$/, nav: 'directory', adminOnly: true, render: (ctx, [id]) => renderDevoteeForm(ctx, Number(id)) },
   { pattern: /^\/pooja$/, nav: 'pooja', render: (ctx) => renderPooja(ctx) },
   { pattern: /^\/mailing$/, nav: 'mailing', render: (ctx) => renderMailing(ctx) },
+  { pattern: /^\/registrations$/, nav: 'registrations', adminOnly: true, render: (ctx) => renderRegistrations(ctx) },
   { pattern: /^\/settings$/, nav: 'settings', adminOnly: true, render: (ctx) => renderSettings(ctx) },
 ];
 
@@ -22,6 +25,7 @@ const NAV_ITEMS = [
   { key: 'directory', href: '#/directory', label: 'Directory', icon: 'book' },
   { key: 'pooja', href: '#/pooja', label: 'Pooja Lookup', icon: 'star' },
   { key: 'mailing', href: '#/mailing', label: 'Mailing', icon: 'mail' },
+  { key: 'registrations', href: '#/registrations', label: 'Registrations', icon: 'users', adminOnly: true },
   { key: 'settings', href: '#/settings', label: 'Settings', icon: 'settings', adminOnly: true },
 ];
 
@@ -101,6 +105,26 @@ function ensureShell() {
   return shell;
 }
 
+/** Shows how many public-form registrations are waiting, next to the Registrations tab. */
+async function refreshPendingBadge(shell) {
+  if (session.user.role !== 'admin') return;
+  const link = shell.querySelector('[data-nav="registrations"]');
+  if (!link) return;
+  try {
+    const { data } = await api.get('/registrations/summary');
+    const existing = link.querySelector('.count-pill');
+    if (!data.pending) {
+      existing?.remove();
+      return;
+    }
+    const pill = existing ?? link.appendChild(h('span', { class: 'count-pill' }));
+    pill.textContent = String(data.pending);
+    link.title = `${data.pending} registration${data.pending === 1 ? '' : 's'} waiting for review`;
+  } catch {
+    // A missing badge is not worth bothering the user about.
+  }
+}
+
 function highlightNav(shell, key) {
   shell.querySelectorAll('.main-nav__link').forEach((link) => {
     const active = link.dataset.nav === key;
@@ -147,6 +171,7 @@ async function route() {
 
   const shell = ensureShell();
   highlightNav(shell, match.route.nav);
+  refreshPendingBadge(shell);
   const view = shell.querySelector('#view');
   const container = h('div', { class: 'view' }, loadingView());
   view.replaceChildren(container);
@@ -196,20 +221,6 @@ async function boot() {
     route();
   });
   route();
-}
-
-const BADGE_IDLE_MS = 900;
-
-/** Shrinks the fixed credits badge to its lamp while scrolling; full text returns once scrolling stops. */
-function watchCreditsBadge() {
-  const badge = document.querySelector('.crafted-badge');
-  if (!badge) return;
-  let idleTimer = null;
-  window.addEventListener('scroll', () => {
-    badge.classList.add('is-compact');
-    clearTimeout(idleTimer);
-    idleTimer = setTimeout(() => badge.classList.remove('is-compact'), BADGE_IDLE_MS);
-  }, { passive: true });
 }
 
 watchCreditsBadge();

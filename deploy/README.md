@@ -134,6 +134,7 @@ You're live. 🎉
 | List backups | `sudo bash /opt/temple-directory/current/deploy/server/restore.sh` |
 | Restart the app | `sudo systemctl restart temple-directory` |
 | Change settings (temple name, viewer export…) | `sudo nano /etc/temple-directory/temple.env`, then restart the app |
+| Share the devotee registration form | In the app: **Settings → Devotee registration form → Share on WhatsApp** |
 
 ## Updating to a new version
 
@@ -260,6 +261,12 @@ When the temple buys a domain (a `.org` is about ₹900 a year), switch to Cloud
    ```
    This connects the tunnel, stops Caddy and DuckDNS, and closes ports 80/443. If the token is wrong it stops and changes nothing, so the old address keeps working.
 4. **Require an email code:** go to **Zero Trust → Access → Applications → Add → Self-hosted**, set the domain `directory.yourtemple.org`, and add a policy **Allow → Emails** listing the trustees' and staff email addresses. Login method: **One-time PIN**.
+
+   > ⚠️ **If you use the devotee registration link, Access will block devotees too.** They have no temple email, so they would be stopped before the form. To let them through, add a second Access application (for example "Temple registration form") covering these paths on the same domain, with one policy: **Bypass → Everyone**.
+   >
+   > `…/join` · `…/api/public` · `…/css` · `…/js` · `…/img`
+   >
+   > The last three are only the page's styling and code, which hold no devotee data. Everything that reads the directory stays behind `…/api`, which remains protected by both Access and the app's own login. If you would rather not open any path, keep Access on everything and collect details at the temple office instead.
 5. **In Oracle**, delete the port 80 and 443 ingress rules from Step 3. You can also delete the DuckDNS subdomain.
 
 ---

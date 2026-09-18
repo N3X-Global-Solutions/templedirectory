@@ -1,15 +1,35 @@
 import { api } from '../api.js';
 import { debounce, h, icon, toast } from '../dom.js';
 import { formatPhone } from '../format.js';
+import { tamilDate } from '../tamilCalendar.js';
 import {
-  datalist, donationRow, familyRow, field, input, readRow, select, starSelects, textarea,
+  datalist, donationRow, familyRow, field, input, readRow, select, starSelects, textarea, yesNoField,
 } from './formControls.js';
 
 const PHONE_CHECK_DELAY_MS = 400;
 const TOP_LEVEL_FIELDS = [
-  'name', 'father_name', 'gender', 'dob', 'member_type', 'phone', 'alt_phone', 'email', 'address', 'city', 'state',
-  'pincode', 'native_place', 'raasi', 'natchathram', 'caste', 'gothram', 'notes',
+  'name', 'father_name', 'gender', 'dob', 'member_type', 'occupation', 'phone', 'alt_phone', 'email', 'address',
+  'city', 'state', 'pincode', 'native_place', 'raasi', 'natchathram', 'caste', 'gothram', 'notes',
 ];
+
+/** Live "Tamil birthday" line under the date-of-birth field. */
+function tamilBirthdayPreview(dobInput) {
+  const preview = h('p', { class: 'tamil-birthday', 'aria-live': 'polite' });
+  const refresh = () => {
+    const result = tamilDate(dobInput.value);
+    preview.hidden = !result;
+    if (!result) return;
+    preview.replaceChildren(
+      h('span', { class: 'tamil-birthday__label' }, 'Tamil birthday'),
+      h('strong', {}, `${result.month.en} ${result.day}`),
+      h('span', { class: 'ta' }, `${result.month.ta} ${result.day}`),
+      h('span', { class: 'tamil-birthday__year' }, `${result.year.en} (${result.year.ta}) year`));
+  };
+  dobInput.addEventListener('input', refresh);
+  dobInput.addEventListener('change', refresh);
+  refresh();
+  return preview;
+}
 
 function section(title, description, ...content) {
   return h('fieldset', { class: 'form-section' },
@@ -34,6 +54,7 @@ export async function renderDevoteeForm(ctx, id) {
     gender: select('gender', reference.genders, { value: person.gender ?? '', placeholder: 'Select gender' }),
     dob: input('dob', { type: 'date', value: person.dob ?? '' }),
     member_type: select('member_type', reference.memberTypes, { value: person.member_type ?? 'Devotee', placeholder: 'Select type' }),
+    occupation: input('occupation', { value: person.occupation ?? '', maxlength: '120', list: 'occupation-options', placeholder: 'e.g. Farmer, Teacher' }),
     phone: input('phone', { type: 'tel', value: person.phone ?? '', maxlength: '20', required: true, inputmode: 'tel', placeholder: '98765 43210' }),
     alt_phone: input('alt_phone', { type: 'tel', value: person.alt_phone ?? '', maxlength: '20', inputmode: 'tel' }),
     email: input('email', { type: 'email', value: person.email ?? '', maxlength: '120' }),
@@ -48,6 +69,13 @@ export async function renderDevoteeForm(ctx, id) {
     gothram: input('gothram', { value: person.gothram ?? '', maxlength: '120', list: 'gothram-options' }),
     notes: textarea('notes', { value: person.notes ?? '', maxlength: '2000', rows: '3', placeholder: 'Special poojas, preferences, anything worth remembering' }),
   };
+
+  const hundiyal = yesNoField('hundiyal_wanted', 'Hundiyal wanted', {
+    value: person.hundiyal_wanted ?? false,
+    hint: 'Would this family like a hundiyal to keep at home?',
+  });
+  const dobField = field('Date of birth', controls.dob);
+  dobField.insertBefore(tamilBirthdayPreview(controls.dob), dobField.querySelector('.field__error'));
 
   const familyList = h('div', { class: 'repeater__list' });
   const donationList = h('div', { class: 'repeater__list' });
@@ -88,8 +116,10 @@ export async function renderDevoteeForm(ctx, id) {
         field('Full name', controls.name, { required: true, span: 'span-2' }),
         field("Father's name", controls.father_name, { span: 'span-2' }),
         field('Gender', controls.gender),
-        field('Date of birth', controls.dob),
-        field('Member type', controls.member_type))),
+        dobField,
+        field('Member type', controls.member_type),
+        field('Occupation', controls.occupation),
+        hundiyal.element)),
 
     section('Contact', 'Each phone number can belong to only one devotee.',
       h('div', { class: 'form-grid' },
@@ -132,6 +162,7 @@ export async function renderDevoteeForm(ctx, id) {
     datalist('state-options', reference.states),
     datalist('caste-options', facets.castes),
     datalist('gothram-options', facets.gothrams),
+    datalist('occupation-options', facets.occupations),
     datalist('donation-purposes', reference.donationPurposes));
 
   const phoneError = () => form.querySelector('[data-error-for="phone"]');
@@ -187,6 +218,7 @@ export async function renderDevoteeForm(ctx, id) {
     const values = Object.fromEntries(TOP_LEVEL_FIELDS.map((key) => [key, controls[key].value]));
     return {
       ...values,
+      hundiyal_wanted: hundiyal.getValue(),
       ...(existing ? { version: existing.version } : {}),
       family_members: [...familyList.children].map(readRow),
       donations: [...donationList.children].map(readRow),

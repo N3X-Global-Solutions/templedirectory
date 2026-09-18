@@ -80,6 +80,7 @@ export function familyRow(reference, member = {}, onChange = () => {}) {
   row.append(
     cell('Name', input('name', { value: member.name ?? '', maxlength: '100', placeholder: 'Full name' }), 'name'),
     cell('Relation', select('relation', reference.relations, { value: member.relation ?? '', placeholder: 'Relation' }), 'relation'),
+    cell('Phone', input('phone', { type: 'tel', value: member.phone ?? '', maxlength: '20', inputmode: 'tel', placeholder: 'Optional' }), 'phone'),
     cell('Raasi', raasiSelect, 'raasi'),
     cell('Natchathram', starSelect, 'natchathram'),
     removeButton('Remove family member', row, onChange),
@@ -104,6 +105,25 @@ export function donationRow(reference, donation = {}, onChange = () => {}) {
     removeButton('Remove donation', row, onChange),
   );
   return row;
+}
+
+/** Two-button Yes/No radio group. Returns { element, getValue }. */
+export function yesNoField(name, label, { value = false, hint = '' } = {}) {
+  const labelId = nextId(`${name}-label`);
+  const option = (answer, text) => {
+    const id = nextId(`${name}-${answer}`);
+    return h('span', { class: 'yes-no__option' },
+      h('input', { type: 'radio', name, id, value: answer, checked: (answer === 'yes') === Boolean(value) }),
+      h('label', { for: id }, text));
+  };
+  const group = h('div', { class: 'yes-no', role: 'radiogroup', 'aria-labelledby': labelId },
+    option('yes', 'Yes'), option('no', 'No'));
+  const element = h('div', { class: 'field' },
+    h('span', { class: 'field__label', id: labelId }, label),
+    group,
+    hint ? h('p', { class: 'field__hint' }, hint) : null,
+    h('p', { class: 'field__error', dataset: { errorFor: name }, 'aria-live': 'polite' }));
+  return { element, getValue: () => group.querySelector('input:checked')?.value === 'yes' };
 }
 
 export function readRow(row) {

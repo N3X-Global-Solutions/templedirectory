@@ -148,6 +148,9 @@ SESSION_HOURS=12
 SECURE_COOKIES=true
 TRUST_PROXY=1
 VIEWER_CAN_EXPORT=false
+# Devotee registration form: false = each form waits for an admin to approve it
+PUBLIC_FORM_AUTO_APPROVE=false
+PUBLIC_FORM_RATE_LIMIT=20
 API_RATE_LIMIT=600
 EXPORT_RATE_LIMIT=20
 EOF

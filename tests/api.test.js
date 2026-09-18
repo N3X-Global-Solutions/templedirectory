@@ -168,10 +168,13 @@ describe('Temple directory API', () => {
     before(async () => {
       const people = [
         { name: 'Anand Raman', phone: '9811111111', city: 'Madurai', raasi: 'Simmam', natchathram: 'Magam', gothram: 'Bharadwaja', gender: 'Male',
-          family_members: [{ name: 'Priya Anand', relation: 'Wife', raasi: 'Thulam', natchathram: 'Swathi' }], donations: [] },
+          occupation: 'Teacher', hundiyal_wanted: true, dob: '2002-02-17',
+          family_members: [{ name: 'Priya Anand', relation: 'Wife', phone: '+91 94440 12345', raasi: 'Thulam', natchathram: 'Swathi' }], donations: [] },
         { name: 'Bhavani Selvam', phone: '9822222222', city: 'Chennai', raasi: 'Kadagam', natchathram: 'Poosam', gender: 'Female',
+          occupation: 'Farmer', hundiyal_wanted: 'no',
           address: '', pincode: '', family_members: [], donations: [{ donated_on: '2026-03-01', amount: '1001', mode: 'UPI' }] },
-        { name: 'Chandran 100%_test', phone: '9833333333', city: 'madurai', raasi: 'Simmam', natchathram: 'Pooram', gender: 'Male', family_members: [], donations: [] },
+        { name: 'Chandran 100%_test', phone: '9833333333', city: 'madurai', raasi: 'Simmam', natchathram: 'Pooram', gender: 'Male',
+          occupation: 'teacher', family_members: [], donations: [] },
       ];
       for (const person of people) {
         const res = await admin.post('/api/devotees', sampleDevotee(person));
@@ -183,6 +186,35 @@ describe('Temple directory API', () => {
       assert.equal((await viewer.get('/api/devotees?q=bhavani')).body.meta.total, 1);
       assert.equal((await viewer.get('/api/devotees?q=98222')).body.data[0].name, 'Bhavani Selvam');
       assert.equal((await viewer.get('/api/devotees?q=Priya')).body.data[0].name, 'Anand Raman');
+    });
+
+    test('returns occupation, hundiyal choice (as a boolean) and family member phones', async () => {
+      const [anand] = (await viewer.get('/api/devotees?q=Anand Raman')).body.data;
+      assert.equal(anand.hundiyal_wanted, true);
+      const record = (await viewer.get(`/api/devotees/${anand.id}`)).body.data;
+      assert.equal(record.occupation, 'Teacher');
+      assert.equal(record.hundiyal_wanted, true);
+      assert.equal(record.family_members[0].phone, '9444012345');
+      const [bhavani] = (await viewer.get('/api/devotees?q=Bhavani')).body.data;
+      assert.equal(bhavani.hundiyal_wanted, false);
+    });
+
+    test('searches by family member phone and occupation', async () => {
+      assert.equal((await viewer.get('/api/devotees?q=94440')).body.data[0].name, 'Anand Raman');
+      assert.equal((await viewer.get('/api/devotees?q=teacher')).body.meta.total, 2);
+    });
+
+    test('filters by hundiyal wanted and occupation', async () => {
+      const wanted = (await viewer.get('/api/devotees?hundiyal=yes')).body;
+      assert.deepEqual(wanted.data.map((d) => d.name), ['Anand Raman']);
+      const notWanted = (await viewer.get('/api/devotees?hundiyal=no')).body;
+      assert.ok(notWanted.data.every((d) => d.hundiyal_wanted === false));
+      assert.ok(notWanted.data.some((d) => d.name === 'Chandran 100%_test'), 'omitted choice counts as no');
+      assert.equal((await viewer.get('/api/devotees?occupation=TEACHER')).body.meta.total, 2);
+      const mailing = (await viewer.get('/api/mailing?hundiyal=yes')).body;
+      assert.deepEqual(mailing.data.map((d) => d.name), ['Anand Raman']);
+      const facets = (await viewer.get('/api/facets')).body.data;
+      assert.equal(facets.occupations.filter((o) => o.toLowerCase() === 'teacher').length, 1);
     });
 
     test('treats LIKE wildcards in the query literally', async () => {
@@ -225,6 +257,16 @@ describe('Temple directory API', () => {
       assert.equal((await viewer.get('/api/pooja?q=a')).status, 400);
     });
 
+    test('pooja lookup finds a household by a family member phone and shows the Tamil birth month only', async () => {
+      const [household] = (await viewer.get('/api/pooja?q=9444012345')).body.data;
+      assert.equal(household.name, 'Anand Raman');
+      assert.deepEqual(household.tamil_birth_month, { en: 'Maasi', ta: 'மாசி' });
+      assert.equal(household.dob, undefined, 'full date of birth stays private');
+      assert.equal(household.family_members[0].phone, undefined, 'family phones are not needed for pooja');
+      const [bhavani] = (await viewer.get('/api/pooja?q=Bhavani')).body.data;
+      assert.equal(bhavani.tamil_birth_month, null);
+    });
+
     test('mailing list returns addresses for selected ids or filters', async () => {
       const all = await viewer.get('/api/mailing?city=Chennai');
       assert.equal(all.body.meta.total, 1);
@@ -256,7 +298,10 @@ describe('Temple directory API', () => {
     test('full CSV export and database backup are admin-only', async () => {
       assert.equal((await viewer.get('/api/export/full')).status, 403);
       const csv = await admin.get('/api/export/full');
-      assert.match(csv.body, /Priya Anand \(Wife\)/);
+      assert.match(csv.body, /Priya Anand \(Wife, 9444012345\)/);
+      assert.match(csv.body, /Occupation,Hundiyal Wanted/);
+      assert.match(csv.body, /Anand Raman,.*Teacher,Yes/);
+      assert.match(csv.body, /Maasi/, 'Tamil birthday column is included');
       assert.equal((await viewer.get('/api/backup')).status, 403);
       const backup = await admin.get('/api/backup');
       assert.equal(backup.status, 200);

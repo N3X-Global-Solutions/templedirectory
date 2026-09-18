@@ -3,6 +3,7 @@ import { withTransaction } from '../db.js';
 export const DEVOTEE_FIELDS = Object.freeze([
   'name', 'father_name', 'gender', 'phone', 'alt_phone', 'email', 'dob', 'address', 'city', 'state',
   'pincode', 'native_place', 'raasi', 'natchathram', 'caste', 'gothram', 'member_type', 'notes',
+  'occupation', 'hundiyal_wanted',
 ]);
 
 export const MAILING_LIMIT = 5000;
@@ -35,9 +36,16 @@ const NOCASE_FILTERS = Object.freeze({
   city: 'd.city',
   caste: 'd.caste',
   gothram: 'd.gothram',
+  occupation: 'd.occupation',
 });
 
-const FACET_COLUMNS = Object.freeze({ cities: 'city', states: 'state', castes: 'caste', gothrams: 'gothram' });
+const YES_NO_FILTERS = Object.freeze({
+  hundiyal: 'd.hundiyal_wanted',
+});
+
+const FACET_COLUMNS = Object.freeze({
+  cities: 'city', states: 'state', castes: 'caste', gothrams: 'gothram', occupations: 'occupation',
+});
 
 const TOTALS_JOIN = `LEFT JOIN (
   SELECT devotee_id, SUM(amount_paise) AS total FROM donations GROUP BY devotee_id
@@ -63,9 +71,11 @@ export function buildCriteriaSql({ q = '', filters = {}, ids = null } = {}) {
       OR d.phone LIKE ? ESCAPE '\\' OR d.alt_phone LIKE ? ESCAPE '\\'
       OR d.city LIKE ? ESCAPE '\\' OR d.pincode LIKE ? ESCAPE '\\'
       OR d.gothram LIKE ? ESCAPE '\\' OR d.native_place LIKE ? ESCAPE '\\' OR d.email LIKE ? ESCAPE '\\'
-      OR EXISTS (SELECT 1 FROM family_members f WHERE f.devotee_id = d.id AND f.name LIKE ? ESCAPE '\\')
+      OR d.occupation LIKE ? ESCAPE '\\'
+      OR EXISTS (SELECT 1 FROM family_members f WHERE f.devotee_id = d.id
+                 AND (f.name LIKE ? ESCAPE '\\' OR f.phone LIKE ? ESCAPE '\\'))
     )`);
-    params.push(like, like, phoneLike, phoneLike, like, like, like, like, like, like);
+    params.push(like, like, phoneLike, phoneLike, like, like, like, like, like, like, like, phoneLike);
   }
 
   for (const [key, column] of Object.entries(EXACT_FILTERS)) {
@@ -79,6 +89,10 @@ export function buildCriteriaSql({ q = '', filters = {}, ids = null } = {}) {
       clauses.push(`${column} = ? COLLATE NOCASE`);
       params.push(filters[key]);
     }
+  }
+  for (const [key, column] of Object.entries(YES_NO_FILTERS)) {
+    if (filters[key] === 'yes') clauses.push(`${column} = 1`);
+    if (filters[key] === 'no') clauses.push(`${column} = 0`);
   }
   if (filters.donations === 'yes') clauses.push('COALESCE(ds.total, 0) > 0');
   if (filters.donations === 'no') clauses.push('COALESCE(ds.total, 0) = 0');
@@ -110,6 +124,10 @@ function groupBy(rows, key) {
   }, new Map());
 }
 
+/** SQLite stores the Yes/No answer as 0/1; the API exposes a real boolean. */
+const withBooleans = (row) => ({ ...row, hundiyal_wanted: row.hundiyal_wanted === 1 });
+const toSqlValue = (value) => (typeof value === 'boolean' ? Number(value) : value);
+
 export function isPhoneConflict(error) {
   return /UNIQUE constraint failed: devotees\.phone/.test(String(error?.message));
 }
@@ -130,11 +148,11 @@ export function createDevoteeRepository(db) {
   );
   const selectByPhone = db.prepare('SELECT id, name FROM devotees WHERE phone = ?');
   const insertMember = db.prepare(
-    'INSERT INTO family_members (devotee_id, position, name, relation, raasi, natchathram) VALUES (?, ?, ?, ?, ?, ?)',
+    'INSERT INTO family_members (devotee_id, position, name, relation, phone, raasi, natchathram) VALUES (?, ?, ?, ?, ?, ?, ?)',
   );
   const deleteMembers = db.prepare('DELETE FROM family_members WHERE devotee_id = ?');
   const selectMembers = db.prepare(
-    'SELECT id, name, relation, raasi, natchathram FROM family_members WHERE devotee_id = ? ORDER BY position, id',
+    'SELECT id, name, relation, phone, raasi, natchathram FROM family_members WHERE devotee_id = ? ORDER BY position, id',
   );
   const insertDonation = db.prepare(
     'INSERT INTO donations (devotee_id, donated_on, amount_paise, purpose, mode, receipt_no) VALUES (?, ?, ?, ?, ?, ?)',
@@ -144,15 +162,16 @@ export function createDevoteeRepository(db) {
     'SELECT id, donated_on, amount_paise, purpose, mode, receipt_no FROM donations WHERE devotee_id = ? ORDER BY donated_on DESC, id DESC',
   );
 
-  const fieldValues = (data) => DEVOTEE_FIELDS.map((field) => data[field]);
+  const fieldValues = (data) => DEVOTEE_FIELDS.map((field) => toSqlValue(data[field]));
 
   function writeChildren(id, data) {
     deleteMembers.run(id);
-    data.family_members.forEach((m, index) => insertMember.run(id, index, m.name, m.relation, m.raasi, m.natchathram));
+    data.family_members.forEach((m, index) => insertMember.run(id, index, m.name, m.relation, m.phone, m.raasi, m.natchathram));
     deleteDonations.run(id);
     data.donations.forEach((d) => insertDonation.run(id, d.donated_on, d.amount_paise, d.purpose, d.mode, d.receipt_no));
   }
 
+  /** Family rows for the pooja lookup — phone is intentionally left out; only star details are shared there. */
   function membersByDevotee(ids) {
     if (ids.length === 0) return new Map();
     const rows = db.prepare(`
@@ -190,7 +209,7 @@ export function createDevoteeRepository(db) {
     findById(id) {
       const devotee = selectDevotee.get(id);
       if (!devotee) return null;
-      return { ...devotee, family_members: selectMembers.all(id), donations: selectDonations.all(id) };
+      return { ...withBooleans(devotee), family_members: selectMembers.all(id), donations: selectDonations.all(id) };
     },
 
     findByPhone(phone) {
@@ -203,13 +222,13 @@ export function createDevoteeRepository(db) {
       const offset = (criteria.page - 1) * criteria.pageSize;
       const items = db.prepare(`
         SELECT d.id, d.name, d.father_name, d.gender, d.phone, d.city, d.state, d.pincode, d.raasi, d.natchathram,
-               d.caste, d.gothram, d.member_type, d.updated_at,
+               d.caste, d.gothram, d.member_type, d.occupation, d.hundiyal_wanted, d.updated_at,
                COALESCE(ds.total, 0) AS total_donation_paise,
                (SELECT COUNT(*) FROM family_members f WHERE f.devotee_id = d.id) AS family_count
         FROM devotees d ${TOTALS_JOIN} ${where}
         ${orderBySql(criteria.sort, criteria.dir)}
         LIMIT ? OFFSET ?`).all(...params, criteria.pageSize, offset);
-      return { items, total };
+      return { items: items.map(withBooleans), total };
     },
 
     mailingList(criteria) {
@@ -227,22 +246,25 @@ export function createDevoteeRepository(db) {
     exportAll() {
       return db.prepare(`
         SELECT d.*, COALESCE(ds.total, 0) AS total_donation_paise,
-               (SELECT group_concat(f.name || CASE WHEN f.relation <> '' THEN ' (' || f.relation || ')' ELSE '' END, '; ')
+               (SELECT group_concat(
+                         f.name || CASE WHEN f.relation <> '' OR f.phone <> ''
+                           THEN ' (' || trim(f.relation || ', ' || f.phone, ', ') || ')' ELSE '' END, '; ')
                   FROM family_members f WHERE f.devotee_id = d.id) AS family_members_text
         FROM devotees d ${TOTALS_JOIN}
-        ORDER BY d.name COLLATE NOCASE LIMIT ?`).all(EXPORT_LIMIT);
+        ORDER BY d.name COLLATE NOCASE LIMIT ?`).all(EXPORT_LIMIT).map(withBooleans);
     },
 
     poojaLookup(query) {
       const term = query.trim();
       const { like, phoneLike } = searchTerms(term);
       const rows = db.prepare(`
-        SELECT d.id, d.name, d.father_name, d.phone, d.city, d.gothram, d.raasi, d.natchathram
+        SELECT d.id, d.name, d.father_name, d.phone, d.city, d.gothram, d.raasi, d.natchathram, d.dob
         FROM devotees d
         WHERE d.name LIKE ? ESCAPE '\\' OR d.phone LIKE ? ESCAPE '\\' OR d.alt_phone LIKE ? ESCAPE '\\'
-           OR EXISTS (SELECT 1 FROM family_members f WHERE f.devotee_id = d.id AND f.name LIKE ? ESCAPE '\\')
+           OR EXISTS (SELECT 1 FROM family_members f WHERE f.devotee_id = d.id
+                      AND (f.name LIKE ? ESCAPE '\\' OR f.phone LIKE ? ESCAPE '\\'))
         ORDER BY CASE WHEN d.name LIKE ? ESCAPE '\\' THEN 0 ELSE 1 END, d.name COLLATE NOCASE
-        LIMIT ?`).all(like, phoneLike, phoneLike, like, `${escapeLike(term)}%`, POOJA_LIMIT);
+        LIMIT ?`).all(like, phoneLike, phoneLike, like, phoneLike, `${escapeLike(term)}%`, POOJA_LIMIT);
       const members = membersByDevotee(rows.map((row) => row.id));
       return rows.map((row) => ({ ...row, family_members: members.get(row.id) ?? [] }));
     },
