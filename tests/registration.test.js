@@ -236,6 +236,64 @@ describe('Public registration form', () => {
       assert.match(res.body.error, /already registered to Office Entry/);
     });
 
+    test('several registrations can be added in one go, skipping the ones that cannot be', async () => {
+      const token = tokenFrom(link.url);
+      const submit = (name, phone) => anyone.post(submitUrl(token), registrationForm({ name, phone }));
+      await submit('Bulk One', '9700000011');
+      await submit('Bulk Two', '9700000012');
+      await submit('Bulk Taken', '9700000013');
+      // This number gets taken by the office before the batch is approved.
+      await admin.post('/api/devotees', sampleDevotee({ name: 'Office Copy', phone: '9700000013' }));
+
+      const pending = (await admin.get('/api/registrations')).body.data;
+      const idOf = (name) => pending.find((r) => r.name === name).id;
+      const res = await admin.post('/api/registrations/bulk', {
+        action: 'approve',
+        ids: [idOf('Bulk One'), idOf('Bulk Two'), idOf('Bulk Taken')],
+      });
+
+      assert.equal(res.status, 200);
+      assert.deepEqual(res.body.data.done.map((r) => r.name).sort(), ['Bulk One', 'Bulk Two']);
+      assert.equal(res.body.data.skipped.length, 1);
+      assert.equal(res.body.data.skipped[0].name, 'Bulk Taken');
+      assert.match(res.body.data.skipped[0].reason, /already registered to Office Copy/);
+      assert.equal((await admin.get('/api/devotees?q=Bulk One')).body.meta.total, 1);
+      assert.equal((await admin.get('/api/devotees?q=Bulk Two')).body.meta.total, 1);
+
+      const stillWaiting = (await admin.get('/api/registrations')).body.data.map((r) => r.name);
+      assert.ok(stillWaiting.includes('Bulk Taken'), 'the skipped one stays for the admin to sort out');
+      assert.ok(!stillWaiting.includes('Bulk One'));
+    });
+
+    test('several registrations can be turned down in one go', async () => {
+      const token = tokenFrom(link.url);
+      await anyone.post(submitUrl(token), registrationForm({ name: 'Bulk Reject One', phone: '9700000021' }));
+      await anyone.post(submitUrl(token), registrationForm({ name: 'Bulk Reject Two', phone: '9700000022' }));
+      const pending = (await admin.get('/api/registrations')).body.data;
+      const ids = pending.filter((r) => r.name.startsWith('Bulk Reject')).map((r) => r.id);
+
+      const res = await admin.post('/api/registrations/bulk', { action: 'reject', ids });
+      assert.equal(res.body.data.done.length, 2);
+      assert.equal(res.body.data.skipped.length, 0);
+      assert.equal((await admin.get('/api/devotees?q=Bulk Reject')).body.meta.total, 0);
+
+      const again = await admin.post('/api/registrations/bulk', { action: 'reject', ids });
+      assert.equal(again.body.data.done.length, 0);
+      assert.match(again.body.data.skipped[0].reason, /already rejected/);
+    });
+
+    test('bulk needs a real action, at least one id, and admin rights', async () => {
+      assert.equal((await admin.post('/api/registrations/bulk', { action: 'delete', ids: [1] })).status, 400);
+      assert.equal((await admin.post('/api/registrations/bulk', { action: 'approve', ids: [] })).status, 400);
+      assert.equal((await admin.post('/api/registrations/bulk', { action: 'approve' })).status, 400);
+      const tooMany = await admin.post('/api/registrations/bulk', { action: 'approve', ids: Array.from({ length: 101 }, (_, i) => i + 1) });
+      assert.equal(tooMany.status, 400);
+      assert.match(tooMany.body.error, /at most 100/);
+      assert.equal((await viewer.post('/api/registrations/bulk', { action: 'approve', ids: [1] })).status, 403);
+      const missing = await admin.post('/api/registrations/bulk', { action: 'approve', ids: [999999] });
+      assert.equal(missing.body.data.skipped[0].reason, 'it no longer exists');
+    });
+
     test('rejecting keeps the devotee out of the directory', async () => {
       const token = tokenFrom(link.url);
       await anyone.post(submitUrl(token), registrationForm({ name: 'Not A Devotee', phone: '9800000005' }));

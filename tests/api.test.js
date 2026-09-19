@@ -168,11 +168,11 @@ describe('Temple directory API', () => {
     before(async () => {
       const people = [
         { name: 'Anand Raman', phone: '9811111111', city: 'Madurai', raasi: 'Simmam', natchathram: 'Magam', gothram: 'Bharadwaja', gender: 'Male',
-          occupation: 'Teacher', hundiyal_wanted: true, dob: '2002-02-17',
+          occupation: 'Teacher', hundiyal_wanted: true, japa_homa_yearly: true, annadhanam_offer: false, dob: '2002-02-17',
           family_members: [{ name: 'Priya Anand', relation: 'Wife', phone: '+91 94440 12345', raasi: 'Thulam', natchathram: 'Swathi' }], donations: [] },
         { name: 'Bhavani Selvam', phone: '9822222222', city: 'Chennai', raasi: 'Kadagam', natchathram: 'Poosam', gender: 'Female',
-          occupation: 'Farmer', hundiyal_wanted: 'no',
-          address: '', pincode: '', family_members: [], donations: [{ donated_on: '2026-03-01', amount: '1001', mode: 'UPI' }] },
+          occupation: 'Farmer', hundiyal_wanted: 'no', japa_homa_yearly: 'no', annadhanam_offer: 'yes',
+          address: '9, Mount Road', pincode: '600002', family_members: [], donations: [{ donated_on: '2026-03-01', amount: '1001', mode: 'UPI' }] },
         { name: 'Chandran 100%_test', phone: '9833333333', city: 'madurai', raasi: 'Simmam', natchathram: 'Pooram', gender: 'Male',
           occupation: 'teacher', family_members: [], donations: [] },
       ];
@@ -197,6 +197,24 @@ describe('Temple directory API', () => {
       assert.equal(record.family_members[0].phone, '9444012345');
       const [bhavani] = (await viewer.get('/api/devotees?q=Bhavani')).body.data;
       assert.equal(bhavani.hundiyal_wanted, false);
+    });
+
+    test('stores the two temple questions and filters by them', async () => {
+      const [anand] = (await viewer.get('/api/devotees?q=Anand Raman')).body.data;
+      assert.equal(anand.japa_homa_yearly, true);
+      assert.equal(anand.annadhanam_offer, false);
+      const record = (await viewer.get(`/api/devotees/${anand.id}`)).body.data;
+      assert.equal(record.japa_homa_yearly, true);
+      assert.equal(record.annadhanam_offer, false);
+
+      const japa = (await viewer.get('/api/devotees?japaHoma=yes')).body;
+      assert.deepEqual(japa.data.map((d) => d.name), ['Anand Raman']);
+      const annadhanam = (await viewer.get('/api/devotees?annadhanam=yes')).body;
+      assert.deepEqual(annadhanam.data.map((d) => d.name), ['Bhavani Selvam']);
+      assert.ok((await viewer.get('/api/devotees?japaHoma=no')).body.data.every((d) => d.japa_homa_yearly === false));
+      const both = (await viewer.get('/api/devotees?japaHoma=yes&annadhanam=yes')).body;
+      assert.equal(both.meta.total, 0, 'the two filters narrow together');
+      assert.equal((await viewer.get('/api/mailing?annadhanam=yes')).body.data.length, 1);
     });
 
     test('searches by family member phone and occupation', async () => {
@@ -264,7 +282,8 @@ describe('Temple directory API', () => {
       assert.equal(household.dob, undefined, 'full date of birth stays private');
       assert.equal(household.family_members[0].phone, undefined, 'family phones are not needed for pooja');
       const [bhavani] = (await viewer.get('/api/pooja?q=Bhavani')).body.data;
-      assert.equal(bhavani.tamil_birth_month, null);
+      assert.equal(typeof bhavani.tamil_birth_month.en, 'string');
+      assert.equal(bhavani.dob, undefined);
     });
 
     test('mailing list returns addresses for selected ids or filters', async () => {
@@ -299,7 +318,8 @@ describe('Temple directory API', () => {
       assert.equal((await viewer.get('/api/export/full')).status, 403);
       const csv = await admin.get('/api/export/full');
       assert.match(csv.body, /Priya Anand \(Wife, 9444012345\)/);
-      assert.match(csv.body, /Occupation,Hundiyal Wanted/);
+      assert.match(csv.body, /Occupation,Hundiyal Wanted,Japa Homa Yearly,Annadhanam on Amavasai/);
+      assert.match(csv.body, /Anand Raman,.*Teacher,Yes,Yes,No/);
       assert.match(csv.body, /Anand Raman,.*Teacher,Yes/);
       assert.match(csv.body, /Maasi/, 'Tamil birthday column is included');
       assert.equal((await viewer.get('/api/backup')).status, 403);

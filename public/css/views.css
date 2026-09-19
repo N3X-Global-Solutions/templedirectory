@@ -480,3 +480,20 @@
   background: #FDEBD0; border: 1px solid rgba(238, 138, 28, 0.45); border-radius: var(--radius-sm);
 }
 .registration__warning svg { flex: none; margin-top: 2px; }
+
+/* Yes/No answers on the record page read as a list, not a cramped grid */
+.facts--answers { grid-template-columns: minmax(0, 1fr) auto; gap: 10px 20px; }
+.facts--answers dd { justify-self: end; }
+
+/* Picking several forms to add at once */
+.registration__heading { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
+.registration__pick { display: flex; align-items: center; padding-top: 4px; cursor: pointer; }
+.registration__pick input { width: 20px; height: 20px; accent-color: var(--kumkum-700); cursor: pointer; }
+.registration.is-picked { border-color: var(--turmeric-500); box-shadow: 0 0 0 2px rgba(224, 165, 38, 0.35), var(--shadow-card); }
+.registrations__list + .selection-bar, .registrations__tabs + div .selection-bar { margin-top: 0; }
+.selection-bar { margin: 0 0 16px; }
+.registrations__bar .selection-bar {
+  position: sticky; top: calc(var(--header-height) + 10px); z-index: 10;
+  box-shadow: 0 10px 20px -16px rgba(63, 10, 13, 0.6);
+}
+@media (max-width: 760px) { .registrations__bar .selection-bar { top: 8px; } }

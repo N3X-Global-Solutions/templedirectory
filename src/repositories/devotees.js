@@ -3,7 +3,7 @@ import { withTransaction } from '../db.js';
 export const DEVOTEE_FIELDS = Object.freeze([
   'name', 'father_name', 'gender', 'phone', 'alt_phone', 'email', 'dob', 'address', 'city', 'state',
   'pincode', 'native_place', 'raasi', 'natchathram', 'caste', 'gothram', 'member_type', 'notes',
-  'occupation', 'hundiyal_wanted',
+  'occupation', 'hundiyal_wanted', 'japa_homa_yearly', 'annadhanam_offer',
 ]);
 
 export const MAILING_LIMIT = 5000;
@@ -41,6 +41,8 @@ const NOCASE_FILTERS = Object.freeze({
 
 const YES_NO_FILTERS = Object.freeze({
   hundiyal: 'd.hundiyal_wanted',
+  japaHoma: 'd.japa_homa_yearly',
+  annadhanam: 'd.annadhanam_offer',
 });
 
 const FACET_COLUMNS = Object.freeze({
@@ -125,7 +127,12 @@ function groupBy(rows, key) {
 }
 
 /** SQLite stores the Yes/No answer as 0/1; the API exposes a real boolean. */
-const withBooleans = (row) => ({ ...row, hundiyal_wanted: row.hundiyal_wanted === 1 });
+const withBooleans = (row) => ({
+  ...row,
+  hundiyal_wanted: row.hundiyal_wanted === 1,
+  japa_homa_yearly: row.japa_homa_yearly === 1,
+  annadhanam_offer: row.annadhanam_offer === 1,
+});
 const toSqlValue = (value) => (typeof value === 'boolean' ? Number(value) : value);
 
 export function isPhoneConflict(error) {
@@ -222,7 +229,8 @@ export function createDevoteeRepository(db) {
       const offset = (criteria.page - 1) * criteria.pageSize;
       const items = db.prepare(`
         SELECT d.id, d.name, d.father_name, d.gender, d.phone, d.city, d.state, d.pincode, d.raasi, d.natchathram,
-               d.caste, d.gothram, d.member_type, d.occupation, d.hundiyal_wanted, d.updated_at,
+               d.caste, d.gothram, d.member_type, d.occupation, d.hundiyal_wanted,
+               d.japa_homa_yearly, d.annadhanam_offer, d.updated_at,
                COALESCE(ds.total, 0) AS total_donation_paise,
                (SELECT COUNT(*) FROM family_members f WHERE f.devotee_id = d.id) AS family_count
         FROM devotees d ${TOTALS_JOIN} ${where}

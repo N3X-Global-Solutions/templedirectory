@@ -75,6 +75,7 @@ export function sampleDevotee(overrides = {}) {
     name: 'Murugan Subramanian',
     father_name: 'Subramanian',
     gender: 'Male',
+    dob: '1968-04-14',
     phone: '98765 43210',
     address: '12, North Car Street\nNear Big Temple',
     city: 'Thanjavur',
@@ -85,6 +86,9 @@ export function sampleDevotee(overrides = {}) {
     caste: 'Vellalar',
     gothram: 'Kashyapa',
     member_type: 'Donor',
+    hundiyal_wanted: false,
+    japa_homa_yearly: false,
+    annadhanam_offer: false,
     family_members: [
       { name: 'Valli Murugan', relation: 'Wife', raasi: 'Kanni', natchathram: 'Hastham' },
       { name: 'Karthik Murugan', relation: 'Son', raasi: '', natchathram: '' },

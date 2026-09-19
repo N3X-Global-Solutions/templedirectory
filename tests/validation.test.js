@@ -56,11 +56,26 @@ describe('validateDevotee', () => {
     assert.equal(data.donations[0].amount_paise, 500100);
   });
 
-  test('requires name and phone', () => {
+  test('requires every field the temple needs, and no more', () => {
     const { data, errors } = validateDevotee({});
     assert.equal(data, null);
-    assert.equal(errors.name, 'Name is required');
-    assert.equal(errors.phone, 'Phone number is required');
+    const required = ['name', 'father_name', 'gender', 'dob', 'phone', 'address', 'city', 'state',
+      'pincode', 'raasi', 'natchathram', 'caste', 'gothram'];
+    for (const key of required) assert.ok(errors[key], `${key} should be required`);
+    for (const key of ['email', 'alt_phone', 'occupation', 'native_place', 'notes', 'member_type']) {
+      assert.equal(errors[key], undefined, `${key} should stay optional`);
+    }
+  });
+
+  test('the two temple questions are stored as Yes/No and default to No', () => {
+    const answered = validateDevotee(sampleDevotee({ japa_homa_yearly: 'yes', annadhanam_offer: true })).data;
+    assert.equal(answered.japa_homa_yearly, true);
+    assert.equal(answered.annadhanam_offer, true);
+    const { japa_homa_yearly: japa, annadhanam_offer: annadhanam, ...withoutAnswers } = sampleDevotee();
+    const missing = validateDevotee(withoutAnswers).data;
+    assert.equal(missing.japa_homa_yearly, false);
+    assert.equal(missing.annadhanam_offer, false);
+    assert.match(validateDevotee(sampleDevotee({ japa_homa_yearly: 'maybe' })).errors.japa_homa_yearly, /Yes or No/);
   });
 
   test('rejects a natchathram outside the chosen raasi', () => {

@@ -119,6 +119,8 @@ const ADDED_COLUMNS = Object.freeze([
   { table: 'devotees', column: 'occupation', definition: "TEXT NOT NULL DEFAULT ''" },
   { table: 'devotees', column: 'hundiyal_wanted', definition: 'INTEGER NOT NULL DEFAULT 0 CHECK (hundiyal_wanted IN (0, 1))' },
   { table: 'family_members', column: 'phone', definition: "TEXT NOT NULL DEFAULT ''" },
+  { table: 'devotees', column: 'japa_homa_yearly', definition: 'INTEGER NOT NULL DEFAULT 0 CHECK (japa_homa_yearly IN (0, 1))' },
+  { table: 'devotees', column: 'annadhanam_offer', definition: 'INTEGER NOT NULL DEFAULT 0 CHECK (annadhanam_offer IN (0, 1))' },
 ]);
 
 function migrate(db) {

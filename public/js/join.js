@@ -3,7 +3,10 @@
 import { watchCreditsBadge } from './creditsBadge.js';
 import { emptyState, h, icon } from './dom.js';
 import { tamilDate } from './tamilCalendar.js';
-import { datalist, familyRow, field, input, readRow, select, starSelects, textarea, yesNoField } from './views/formControls.js';
+import {
+  clearErrorsWhileTyping, datalist, familyRow, field, input, missingRequired, readRow, select, starSelects,
+  textarea, yesNoField,
+} from './views/formControls.js';
 
 const CSRF_HEADERS = Object.freeze({ 'X-Requested-With': 'temple-directory' });
 const HONEYPOT_FIELD = 'nickname';
@@ -107,8 +110,12 @@ function renderForm({ temple, reference }, token) {
     gothram: input('gothram', { maxlength: '120' }),
   };
 
-  const hundiyal = yesNoField('hundiyal_wanted', 'Would you like a hundiyal at home?', { value: false });
-  const dobField = field('Date of birth', controls.dob);
+  const questions = {
+    hundiyal_wanted: yesNoField('hundiyal_wanted', 'Would you like a hundiyal at home?', { required: true }),
+    japa_homa_yearly: yesNoField('japa_homa_yearly', 'Have you performed/participated in the Moolamantra Japa Homa at least once a year?', { required: true }),
+    annadhanam_offer: yesNoField('annadhanam_offer', 'Would you like to provide Annadhanam on Amavasai (Pournami)?', { required: true }),
+  };
+  const dobField = field('Date of birth', controls.dob, { required: true });
   dobField.insertBefore(tamilBirthdayPreview(controls.dob), dobField.querySelector('.field__error'));
 
   const familyList = h('div', { class: 'repeater__list' });
@@ -129,8 +136,8 @@ function renderForm({ temple, reference }, token) {
     section('Your details',
       h('div', { class: 'form-grid form-grid--join' },
         field('Full name', controls.name, { required: true, span: 'span-2' }),
-        field("Father's name", controls.father_name, { span: 'span-2' }),
-        field('Gender', controls.gender),
+        field("Father's name", controls.father_name, { required: true, span: 'span-2' }),
+        field('Gender', controls.gender, { required: true }),
         dobField,
         field('Occupation', controls.occupation, { span: 'span-2' }))),
 
@@ -142,19 +149,19 @@ function renderForm({ temple, reference }, token) {
 
     section('Address',
       h('div', { class: 'form-grid form-grid--join' },
-        field('Address', controls.address, { span: 'full' }),
-        field('City / Town', controls.city),
-        field('State', controls.state),
-        field('Pincode', controls.pincode),
+        field('Address', controls.address, { required: true, span: 'full' }),
+        field('City / Town', controls.city, { required: true }),
+        field('State', controls.state, { required: true }),
+        field('Pincode', controls.pincode, { required: true }),
         field('Native place', controls.native_place, { hint: 'Ancestral village' }))),
 
     section('Raasi & lineage',
-      h('p', { class: 'form-section__desc muted small' }, 'Used for archanai and sankalpam. Leave blank if you are not sure.'),
+      h('p', { class: 'form-section__desc muted small' }, 'Used for archanai and sankalpam. Ask an elder in the family if you are not sure.'),
       h('div', { class: 'form-grid form-grid--join' },
-        field('Raasi', controls.raasi),
-        field('Natchathram', controls.natchathram),
-        field('Caste', controls.caste),
-        field('Gothram', controls.gothram))),
+        field('Raasi', controls.raasi, { required: true }),
+        field('Natchathram', controls.natchathram, { required: true }),
+        field('Caste', controls.caste, { required: true }),
+        field('Gothram', controls.gothram, { required: true }))),
 
     section('Family members',
       h('p', { class: 'form-section__desc muted small' }, 'Add everyone in the family who comes for pooja.'),
@@ -162,7 +169,11 @@ function renderForm({ temple, reference }, token) {
       h('p', { class: 'field__error', dataset: { errorFor: 'family_members' } }),
       h('button', { type: 'button', class: 'btn btn--gold repeater__add', onclick: addFamilyMember }, icon('plus'), 'Add family member')),
 
-    section('Hundiyal', hundiyal.element),
+    section('Temple participation',
+      h('div', { class: 'form-grid form-grid--join' },
+        questions.hundiyal_wanted.element,
+        questions.japa_homa_yearly.element,
+        questions.annadhanam_offer.element)),
 
     // Hidden from people, tempting to bots.
     h('div', { class: 'join__trap', 'aria-hidden': 'true' },
@@ -173,6 +184,8 @@ function renderForm({ temple, reference }, token) {
     submit,
     h('p', { class: 'join__privacy muted small' }, 'Your details are kept by the temple office for temple records only.'),
     datalist('state-options', reference.states));
+
+  clearErrorsWhileTyping(form);
 
   const clearErrors = () => {
     formError.textContent = '';
@@ -202,13 +215,11 @@ function renderForm({ temple, reference }, token) {
     event.preventDefault();
     clearErrors();
     const values = Object.fromEntries(TOP_LEVEL_FIELDS.map((key) => [key, controls[key].value]));
-    const missing = {
-      ...(values.name.trim() ? {} : { name: 'Please enter your name' }),
-      ...(values.phone.trim() ? {} : { phone: 'Please enter your phone number' }),
-    };
+    const answers = Object.fromEntries(Object.entries(questions).map(([key, question]) => [key, question.getValue()]));
+    const missing = missingRequired(values, answers);
     if (Object.keys(missing).length > 0) {
       showErrors(missing);
-      formError.textContent = 'Please fill in the highlighted fields.';
+      formError.textContent = 'Please fill in the fields marked with *.';
       return;
     }
 
@@ -219,7 +230,7 @@ function renderForm({ temple, reference }, token) {
         method: 'POST',
         body: {
           ...values,
-          hundiyal_wanted: hundiyal.getValue(),
+          ...answers,
           family_members: [...familyList.children].map(readRow),
           [HONEYPOT_FIELD]: form.querySelector(`[name="${HONEYPOT_FIELD}"]`).value,
         },
@@ -237,7 +248,7 @@ function renderForm({ temple, reference }, token) {
 
   page(
     header(temple, 'Devotee registration'),
-    h('p', { class: 'join__intro' }, 'Please fill in your family details for the temple register. Only your name and phone number are required.'),
+    h('p', { class: 'join__intro' }, 'Please fill in your family details for the temple register. Fields marked * are needed; the rest are optional.'),
     form);
   controls.name.focus({ preventScroll: true });
 }

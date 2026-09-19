@@ -2,12 +2,15 @@ import { h, icon } from '../dom.js';
 import { raasiOptions, starOptions } from '../format.js';
 
 export const FILTER_KEYS = [
-  'gender', 'memberType', 'raasi', 'natchathram', 'state', 'city', 'caste', 'gothram', 'occupation', 'hundiyal', 'donations',
+  'gender', 'memberType', 'raasi', 'natchathram', 'state', 'city', 'caste', 'gothram', 'occupation',
+  'hundiyal', 'japaHoma', 'annadhanam', 'donations',
 ];
 
 const plain = (values) => values.map((value) => ({ value, label: value }));
 const YES_NO_LABELS = Object.freeze({
   hundiyal: { yes: 'Wants hundiyal', no: 'No hundiyal' },
+  japaHoma: { yes: 'Attends Japa Homa', no: 'Does not attend' },
+  annadhanam: { yes: 'Offers Annadhanam', no: 'Does not offer' },
   donations: { yes: 'Has donated', no: 'No donations yet' },
 });
 const yesNoOptions = (key) => Object.entries(YES_NO_LABELS[key]).map(([value, label]) => ({ value, label }));
@@ -23,6 +26,8 @@ const FILTER_DEFS = [
   { key: 'gothram', label: 'Gothram', options: ({ facets }) => plain(facets.gothrams) },
   { key: 'occupation', label: 'Occupation', options: ({ facets }) => plain(facets.occupations) },
   { key: 'hundiyal', label: 'Hundiyal', options: () => yesNoOptions('hundiyal') },
+  { key: 'japaHoma', label: 'Japa Homa', options: () => yesNoOptions('japaHoma') },
+  { key: 'annadhanam', label: 'Annadhanam', options: () => yesNoOptions('annadhanam') },
   { key: 'donations', label: 'Donations', options: () => yesNoOptions('donations') },
 ];
 

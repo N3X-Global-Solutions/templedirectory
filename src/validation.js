@@ -88,8 +88,8 @@ function createReader(source, errors, prefix = '') {
     return value;
   };
 
-  const choice = (key, label, allowed) => {
-    const value = text(key, label, { max: LIMITS.text });
+  const choice = (key, label, allowed, { required = false } = {}) => {
+    const value = text(key, label, { max: LIMITS.text, required });
     if (value && !allowed.has(value)) fail(key, `Select a valid ${label.toLowerCase()}`);
     return value;
   };
@@ -110,9 +110,9 @@ function createReader(source, errors, prefix = '') {
     return normalized ?? '';
   };
 
-  const stars = (raasiKey = 'raasi', starKey = 'natchathram') => {
-    const raasi = choice(raasiKey, 'Raasi', RAASI_VALUES);
-    const natchathram = choice(starKey, 'Natchathram', NAKSHATRA_VALUES);
+  const stars = (raasiKey = 'raasi', starKey = 'natchathram', { required = false } = {}) => {
+    const raasi = choice(raasiKey, 'Raasi', RAASI_VALUES, { required });
+    const natchathram = choice(starKey, 'Natchathram', NAKSHATRA_VALUES, { required });
     if (raasi && natchathram && RAASI_VALUES.has(raasi) && !isCompatibleStar(raasi, natchathram)) {
       fail(starKey, `${natchathram} does not fall in ${raasi} raasi`);
     }
@@ -212,27 +212,29 @@ export function validateDevotee(input) {
   const email = read.text('email', 'Email', { max: LIMITS.email }).toLowerCase();
   if (email && !EMAIL_PATTERN.test(email)) read.fail('email', 'Enter a valid email address');
 
-  const pincode = read.text('pincode', 'Pincode', { max: 10 }).replace(/\s/g, '');
+  const pincode = read.text('pincode', 'Pincode', { max: 10, required: true }).replace(/\s/g, '');
   if (pincode && !PINCODE_PATTERN.test(pincode)) read.fail('pincode', 'Pincode must be 6 digits');
 
   const data = {
     name: read.text('name', 'Name', { max: LIMITS.name, required: true }),
-    father_name: read.text('father_name', "Father's name", { max: LIMITS.name }),
-    gender: read.choice('gender', 'Gender', GENDER_VALUES),
+    father_name: read.text('father_name', "Father's name", { max: LIMITS.name, required: true }),
+    gender: read.choice('gender', 'Gender', GENDER_VALUES, { required: true }),
     phone,
     alt_phone: altPhone,
     email,
-    dob: read.date('dob', 'Date of birth'),
+    dob: read.date('dob', 'Date of birth', { required: true }),
     occupation: read.text('occupation', 'Occupation', { max: LIMITS.text }),
     hundiyal_wanted: read.yesNo('hundiyal_wanted', 'Hundiyal wanted'),
-    address: read.text('address', 'Address', { max: LIMITS.address, multiline: true }),
-    city: read.text('city', 'City', { max: LIMITS.text }),
-    state: read.text('state', 'State', { max: LIMITS.text }),
+    japa_homa_yearly: read.yesNo('japa_homa_yearly', 'Moolamantra Japa Homa answer'),
+    annadhanam_offer: read.yesNo('annadhanam_offer', 'Annadhanam answer'),
+    address: read.text('address', 'Address', { max: LIMITS.address, multiline: true, required: true }),
+    city: read.text('city', 'City', { max: LIMITS.text, required: true }),
+    state: read.text('state', 'State', { max: LIMITS.text, required: true }),
     pincode,
     native_place: read.text('native_place', 'Native place', { max: LIMITS.text }),
-    ...read.stars(),
-    caste: read.text('caste', 'Caste', { max: LIMITS.text }),
-    gothram: read.text('gothram', 'Gothram', { max: LIMITS.text }),
+    ...read.stars('raasi', 'natchathram', { required: true }),
+    caste: read.text('caste', 'Caste', { max: LIMITS.text, required: true }),
+    gothram: read.text('gothram', 'Gothram', { max: LIMITS.text, required: true }),
     member_type: read.choice('member_type', 'Member type', MEMBER_TYPE_VALUES) || 'Devotee',
     notes: read.text('notes', 'Notes', { max: LIMITS.notes, multiline: true }),
     family_members: readFamilyMembers(input.family_members, errors),

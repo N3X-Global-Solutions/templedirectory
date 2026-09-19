@@ -214,6 +214,11 @@ async function boot() {
   }
 
   window.addEventListener('hashchange', route);
+  // The Registrations page fires this after approving or turning down forms.
+  window.addEventListener('registrations:changed', () => {
+    const shell = appRoot().querySelector('.shell');
+    if (shell && session) refreshPendingBadge(shell);
+  });
   window.addEventListener('auth:expired', () => {
     if (!session) return;
     session = null;

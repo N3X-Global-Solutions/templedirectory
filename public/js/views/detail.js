@@ -7,6 +7,9 @@ import { tamilDate } from '../tamilCalendar.js';
 
 const dash = () => h('span', { class: 'muted' }, '—');
 
+/** Yes/No answer shown as a small badge so it reads at a glance. */
+const answer = (value) => h('span', { class: `badge badge--${value ? 'answer-yes' : 'answer-no'}` }, value ? 'Yes' : 'No');
+
 function tamilBirthday(dob) {
   const result = tamilDate(dob);
   if (!result) return '';
@@ -114,7 +117,6 @@ export async function renderDevoteeDetail(ctx, id) {
           fact('Date of birth', formatDate(person.dob)),
           fact('Tamil birthday', tamilBirthday(person.dob)),
           fact('Occupation', person.occupation),
-          fact('Hundiyal wanted', person.hundiyal_wanted ? 'Yes' : 'No'),
           fact('Native place', person.native_place))),
 
       h('section', { class: 'record-section' },
@@ -131,6 +133,13 @@ export async function renderDevoteeDetail(ctx, id) {
         h('dl', { class: 'facts facts--inline' },
           fact('Gothram', person.gothram),
           fact('Caste', person.caste))),
+
+      h('section', { class: 'record-section record-section--wide' },
+        h('h2', { class: 'section-title' }, 'Temple participation'),
+        h('dl', { class: 'facts facts--answers' },
+          fact('Hundiyal wanted', answer(person.hundiyal_wanted)),
+          fact('Moolamantra Japa Homa at least once a year', answer(person.japa_homa_yearly)),
+          fact('Annadhanam on Amavasai (Pournami)', answer(person.annadhanam_offer)))),
 
       h('section', { class: 'record-section record-section--wide' },
         h('h2', { class: 'section-title' }, `Family members (${person.family_members.length})`),

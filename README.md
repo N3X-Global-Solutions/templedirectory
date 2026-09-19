@@ -19,7 +19,13 @@ A small web application for a Kula Deivam (family deity) temple to keep a regist
 
 ### Fields recorded
 
-Name, father's name, gender, phone (**unique**), alternate phone, email, date of birth, occupation, hundiyal wanted (Yes/No), address, city, state, pincode, native place, raasi, natchathram, caste, gothram, member type (Devotee / Donor / Trustee / Volunteer), notes. Each record can also hold:
+Name, father's name, gender, phone (**unique**), alternate phone, email, date of birth, occupation, address, city, state, pincode, native place, raasi, natchathram, caste, gothram, member type (Devotee / Donor / Trustee / Volunteer), notes, and three Yes/No temple questions:
+
+- Hundiyal wanted at home?
+- Have you performed/participated in the Moolamantra Japa Homa at least once a year?
+- Would you like to provide Annadhanam on Amavasai (Pournami)?
+
+Each record can also hold:
 
 - **Family members**, added one row at a time: name, relation, phone (optional), raasi and natchathram
 - **Donations**, added one row at a time: date, amount, purpose, payment mode and receipt number
@@ -35,7 +41,17 @@ The Tamil birthday is worked out automatically from the English date of birth. F
   - The month is always reliable.
   - The day number can differ by one from a printed panchangam only when the month changes within minutes of sunset.
 
-The directory can also be searched by occupation or by a family member's phone number, and filtered by occupation or hundiyal. The hundiyal filter works on the Mailing page too, so you can list everyone who wants a hundiyal.
+The directory can also be searched by occupation or by a family member's phone number, and filtered by occupation, hundiyal, Japa Homa or Annadhanam. These filters work on the Mailing page too, so you can list everyone who offers Annadhanam and print labels for them. All three answers are in the full CSV export.
+
+### Which fields are required
+
+Marked with a red **\*** on the office form and the public form, and checked again on the server:
+
+**Required:** name, father's name, gender, date of birth, phone, address, city/town, state, pincode, raasi, natchathram, caste, gothram, and all three temple questions.
+
+**Optional:** email, alternate phone, occupation, native place, member type (defaults to Devotee), notes, donations, and everything about a family member except their name.
+
+Older records saved before this rule stay as they are. The missing fields are only asked for when someone next edits that record.
 
 ### Validation rules
 
@@ -85,6 +101,7 @@ Devotees can fill in their own details instead of the office typing them.
 2. A devotee opens the link on their phone and fills in the form. They see only the form — no directory, no donations, no notes, and no sign-in.
 3. Their form arrives under **Registrations**, and the tab shows how many are waiting.
 4. You check the details and press **Add to directory**, or **Do not add**. Approved forms create the devotee record; rejected ones are kept in the "Not added" list.
+5. When several arrive together, tick the ones you want (or **Select all**) and add them in one press. Any form whose phone number was registered in the meantime is skipped and stays in the list, with the reason shown, so the rest still go in.
 
 **Safety of the link**
 

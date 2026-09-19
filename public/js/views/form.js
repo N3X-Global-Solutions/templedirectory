@@ -3,7 +3,8 @@ import { debounce, h, icon, toast } from '../dom.js';
 import { formatPhone } from '../format.js';
 import { tamilDate } from '../tamilCalendar.js';
 import {
-  datalist, donationRow, familyRow, field, input, readRow, select, starSelects, textarea, yesNoField,
+  clearErrorsWhileTyping, datalist, donationRow, familyRow, field, input, missingRequired, readRow, select,
+  starSelects, textarea, yesNoField,
 } from './formControls.js';
 
 const PHONE_CHECK_DELAY_MS = 400;
@@ -70,11 +71,20 @@ export async function renderDevoteeForm(ctx, id) {
     notes: textarea('notes', { value: person.notes ?? '', maxlength: '2000', rows: '3', placeholder: 'Special poojas, preferences, anything worth remembering' }),
   };
 
-  const hundiyal = yesNoField('hundiyal_wanted', 'Hundiyal wanted', {
-    value: person.hundiyal_wanted ?? false,
-    hint: 'Would this family like a hundiyal to keep at home?',
-  });
-  const dobField = field('Date of birth', controls.dob);
+  const answerOf = (key) => (existing ? Boolean(person[key]) : null);
+  const questions = {
+    hundiyal_wanted: yesNoField('hundiyal_wanted', 'Hundiyal wanted', {
+      value: answerOf('hundiyal_wanted'), required: true,
+      hint: 'Would this family like a hundiyal to keep at home?',
+    }),
+    japa_homa_yearly: yesNoField('japa_homa_yearly', 'Have you performed/participated in the Moolamantra Japa Homa at least once a year?', {
+      value: answerOf('japa_homa_yearly'), required: true, span: 'full',
+    }),
+    annadhanam_offer: yesNoField('annadhanam_offer', 'Would you like to provide Annadhanam on Amavasai (Pournami)?', {
+      value: answerOf('annadhanam_offer'), required: true, span: 'full',
+    }),
+  };
+  const dobField = field('Date of birth', controls.dob, { required: true });
   dobField.insertBefore(tamilBirthdayPreview(controls.dob), dobField.querySelector('.field__error'));
 
   const familyList = h('div', { class: 'repeater__list' });
@@ -114,12 +124,11 @@ export async function renderDevoteeForm(ctx, id) {
     section('Personal details', '',
       h('div', { class: 'form-grid' },
         field('Full name', controls.name, { required: true, span: 'span-2' }),
-        field("Father's name", controls.father_name, { span: 'span-2' }),
-        field('Gender', controls.gender),
+        field("Father's name", controls.father_name, { required: true, span: 'span-2' }),
+        field('Gender', controls.gender, { required: true }),
         dobField,
         field('Member type', controls.member_type),
-        field('Occupation', controls.occupation),
-        hundiyal.element)),
+        field('Occupation', controls.occupation))),
 
     section('Contact', 'Each phone number can belong to only one devotee.',
       h('div', { class: 'form-grid' },
@@ -129,18 +138,24 @@ export async function renderDevoteeForm(ctx, id) {
 
     section('Address', 'Used for festival invitations and prasadam posting.',
       h('div', { class: 'form-grid' },
-        field('Address', controls.address, { span: 'full' }),
-        field('City / Town', controls.city),
-        field('State', controls.state),
-        field('Pincode', controls.pincode),
+        field('Address', controls.address, { required: true, span: 'full' }),
+        field('City / Town', controls.city, { required: true }),
+        field('State', controls.state, { required: true }),
+        field('Pincode', controls.pincode, { required: true }),
         field('Native place', controls.native_place, { hint: 'Ancestral village' }))),
 
     section('Raasi, natchathram & lineage', 'Choosing a raasi narrows the natchathram list to stars that fall in it.',
       h('div', { class: 'form-grid' },
-        field('Raasi', controls.raasi),
-        field('Natchathram', controls.natchathram),
-        field('Caste', controls.caste),
-        field('Gothram', controls.gothram))),
+        field('Raasi', controls.raasi, { required: true }),
+        field('Natchathram', controls.natchathram, { required: true }),
+        field('Caste', controls.caste, { required: true }),
+        field('Gothram', controls.gothram, { required: true }))),
+
+    section('Temple participation', 'Please answer all three.',
+      h('div', { class: 'form-grid' },
+        questions.hundiyal_wanted.element,
+        questions.japa_homa_yearly.element,
+        questions.annadhanam_offer.element)),
 
     section('Family members', 'Add spouse, children and others who come for pooja with this family.',
       familyList, familyEmpty,
@@ -164,6 +179,8 @@ export async function renderDevoteeForm(ctx, id) {
     datalist('gothram-options', facets.gothrams),
     datalist('occupation-options', facets.occupations),
     datalist('donation-purposes', reference.donationPurposes));
+
+  clearErrorsWhileTyping(form);
 
   const phoneError = () => form.querySelector('[data-error-for="phone"]');
 
@@ -218,7 +235,9 @@ export async function renderDevoteeForm(ctx, id) {
     const values = Object.fromEntries(TOP_LEVEL_FIELDS.map((key) => [key, controls[key].value]));
     return {
       ...values,
-      hundiyal_wanted: hundiyal.getValue(),
+      hundiyal_wanted: questions.hundiyal_wanted.getValue(),
+      japa_homa_yearly: questions.japa_homa_yearly.getValue(),
+      annadhanam_offer: questions.annadhanam_offer.getValue(),
       ...(existing ? { version: existing.version } : {}),
       family_members: [...familyList.children].map(readRow),
       donations: [...donationList.children].map(readRow),
@@ -230,12 +249,10 @@ export async function renderDevoteeForm(ctx, id) {
     checkPhone.cancel();
     clearErrors();
     const payload = collect();
-    const missing = {
-      ...(payload.name.trim() ? {} : { name: 'Name is required' }),
-      ...(payload.phone.trim() ? {} : { phone: 'Phone number is required' }),
-    };
+    const missing = missingRequired(payload, payload);
     if (Object.keys(missing).length > 0) {
       showErrors(missing);
+      toast('Please fill in the fields marked with *', 'error');
       return;
     }
 

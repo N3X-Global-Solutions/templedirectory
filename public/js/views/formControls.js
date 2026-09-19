@@ -1,6 +1,58 @@
 import { h, icon } from '../dom.js';
 import { raasiOptions, starOptions } from '../format.js';
 
+/**
+ * Fields a devotee must fill in, on both the office form and the public form.
+ * Left out on purpose: email, alternate phone, occupation and native place
+ * (often unknown), plus admin-only notes, donations and member type.
+ */
+export const REQUIRED_TEXT_FIELDS = Object.freeze({
+  name: 'Please enter the full name',
+  father_name: "Please enter the father's name",
+  gender: 'Please choose a gender',
+  dob: 'Please enter the date of birth',
+  phone: 'Please enter a phone number',
+  address: 'Please enter the address',
+  city: 'Please enter the city or town',
+  state: 'Please enter the state',
+  pincode: 'Please enter the 6-digit pincode',
+  raasi: 'Please choose a raasi',
+  natchathram: 'Please choose a natchathram',
+  caste: 'Please enter the caste',
+  gothram: 'Please enter the gothram',
+});
+
+/** Yes/No questions that need an answer before the form can be sent. */
+export const REQUIRED_CHOICES = Object.freeze({
+  hundiyal_wanted: 'Please answer Yes or No',
+  japa_homa_yearly: 'Please answer Yes or No',
+  annadhanam_offer: 'Please answer Yes or No',
+});
+
+/** Collects the answers that are missing, ready to show under each field. */
+export function missingRequired(values, choices) {
+  const missing = {};
+  for (const [key, message] of Object.entries(REQUIRED_TEXT_FIELDS)) {
+    if (!String(values[key] ?? '').trim()) missing[key] = message;
+  }
+  for (const [key, message] of Object.entries(REQUIRED_CHOICES)) {
+    if (choices[key] === null || choices[key] === undefined) missing[key] = message;
+  }
+  return missing;
+}
+
+/** Clears the red message under a field as soon as someone types or chooses an answer. */
+export function clearErrorsWhileTyping(form) {
+  const clear = (event) => {
+    const holder = event.target.closest('.field, .repeater__cell');
+    if (!holder) return;
+    holder.classList.remove('has-error');
+    holder.querySelector('.field__error')?.replaceChildren();
+  };
+  form.addEventListener('input', clear);
+  form.addEventListener('change', clear);
+}
+
 let idCounter = 0;
 const nextId = (name) => `f-${name.replace(/\W/g, '-')}-${++idCounter}`;
 
@@ -107,23 +159,34 @@ export function donationRow(reference, donation = {}, onChange = () => {}) {
   return row;
 }
 
-/** Two-button Yes/No radio group. Returns { element, getValue }. */
-export function yesNoField(name, label, { value = false, hint = '' } = {}) {
+/**
+ * Two-button Yes/No radio group. `value` may be true, false, or null for
+ * "not answered yet", which is what a required question starts as.
+ * Returns { element, getValue } where getValue() is true, false or null.
+ */
+export function yesNoField(name, label, { value = null, hint = '', required = false, span = '' } = {}) {
   const labelId = nextId(`${name}-label`);
   const option = (answer, text) => {
     const id = nextId(`${name}-${answer}`);
     return h('span', { class: 'yes-no__option' },
-      h('input', { type: 'radio', name, id, value: answer, checked: (answer === 'yes') === Boolean(value) }),
+      h('input', { type: 'radio', name, id, value: answer, checked: value !== null && (answer === 'yes') === Boolean(value) }),
       h('label', { for: id }, text));
   };
   const group = h('div', { class: 'yes-no', role: 'radiogroup', 'aria-labelledby': labelId },
     option('yes', 'Yes'), option('no', 'No'));
-  const element = h('div', { class: 'field' },
-    h('span', { class: 'field__label', id: labelId }, label),
+  const element = h('div', { class: `field${span ? ` field--${span}` : ''}` },
+    h('span', { class: 'field__label', id: labelId }, label, required ? h('span', { class: 'req', 'aria-hidden': 'true' }, '*') : null),
     group,
     hint ? h('p', { class: 'field__hint' }, hint) : null,
     h('p', { class: 'field__error', dataset: { errorFor: name }, 'aria-live': 'polite' }));
-  return { element, getValue: () => group.querySelector('input:checked')?.value === 'yes' };
+
+  return {
+    element,
+    getValue() {
+      const chosen = group.querySelector('input:checked');
+      return chosen ? chosen.value === 'yes' : null;
+    },
+  };
 }
 
 export function readRow(row) {
